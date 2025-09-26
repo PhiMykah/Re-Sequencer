@@ -31,21 +31,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--pdb",
         type=str,
         metavar="'PDB File or PDB ID'",
+        required=True,
         dest="pdb",
         help="Path to PDB file or PDB ID",
     )
     # Input File (.in)
     parser.add_argument(
         "--input",
+        "-input",
         "-in",
         type=str,
         metavar="'Substitution Input File (.in)'",
+        required=True,
         dest="input",
         help="Input file for substitution",
     )
     # Output File (.pdb)
     parser.add_argument(
         "--output",
+        "-output",
         "-out",
         type=str,
         metavar="'Output File (.pdb)",
