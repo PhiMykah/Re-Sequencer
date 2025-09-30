@@ -133,9 +133,11 @@ class Residue:
         """
         if update_residue:
             # Remove the base atoms before conversion
-            _delete_base_atoms(self._residue, old_base, update_residue)
+            self._residue = _delete_base_atoms(self._residue, old_base, update_residue)
             # Change remaining base atoms to new base
-            _change_base_atoms(self._residue, old_base, new_base, update_residue)
+            self._residue = _change_base_atoms(
+                self._residue, old_base, new_base, update_residue
+            )
             # Update the residue name
             self._update_residue_name(old_base, new_base)
             return self._residue

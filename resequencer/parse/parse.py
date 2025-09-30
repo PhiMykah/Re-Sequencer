@@ -27,8 +27,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     # PDB File or PDB ID
     parser.add_argument(
-        "-pdb",
         "--pdb",
+        "-pdb",
         type=str,
         metavar="'PDB File or PDB ID'",
         required=True,
