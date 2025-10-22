@@ -9,14 +9,14 @@ class Substitution:
 
     Attributes
     ----------
-        chain (str)
-            The chain identifier where the substitution occurs.
-        residue (int)
-            he residue number in the sequence.
-        base (str)
-            The original base or amino acid at the specified position.
-        new_base (str)
-            The new base or amino acid replacing the original.
+    chain (str)
+        The chain identifier where the substitution occurs.
+    residue (int)
+        he residue number in the sequence.
+    base (str)
+        The original base or amino acid at the specified position.
+    new_base (str)
+        The new base or amino acid replacing the original.
     """
 
     chain: str
@@ -54,10 +54,9 @@ def load_substitution_file(file: Path) -> dict[int, Substitution]:
                 continue
 
             # Split by comma separated values or by whitespace
-            if "," in line:
-                parts = [p.strip() for p in line.split(",")]
-            else:
-                parts = line.split()
+            parts = (
+                [p.strip() for p in line.split(",")] if "," in line else line.split()
+            )
 
             # Ignore lines with items greater than 4
             if len(parts) != 4:

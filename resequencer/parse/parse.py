@@ -42,9 +42,9 @@ def build_parser() -> argparse.ArgumentParser:
         "-in",
         type=str,
         metavar="'Substitution Input File (.in)'",
-        required=True,
         dest="input",
         help="Input file for substitution",
+        default="",
     )
     # Output File (.pdb)
     parser.add_argument(
@@ -57,7 +57,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output PDB File after substitution",
         default="output.pdb",
     )
-
+    # Chain Addition (.chain)
+    parser.add_argument(
+        "--add",
+        "-add",
+        "-a",
+        "--add-chain",
+        type=str,
+        dest="add",
+        help="Input file for chain additions",
+        default="",
+    )
     return parser
 
 
@@ -80,10 +90,12 @@ class CLargs(argparse.Namespace):
         pdb: str,
         sub_input: str,
         output: str,
+        add: str,
     ) -> None:
         self.pdb: str = pdb
         self.input: str = sub_input
         self.output: str = output
+        self.add: str = add
 
 
 def parse_args(argv: list[str] | None = None) -> CLargs:
@@ -103,7 +115,7 @@ def parse_args(argv: list[str] | None = None) -> CLargs:
 
     parser: argparse.ArgumentParser = build_parser()
     args: argparse.Namespace = parser.parse_args(argv)
-    return CLargs(args.pdb, args.input, args.output)
+    return CLargs(args.pdb, args.input, args.output, args.add)
 
 
 if __name__ == "__main__":
