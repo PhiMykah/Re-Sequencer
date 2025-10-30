@@ -13,6 +13,13 @@ The **Re-Sequencer** project is designed to streamline and automate the modifica
 
 Set up a Python virtual environment using either `venv` or `conda` to manage dependencies and isolate your development environment.
 
+### Requirements
+
+Re-Sequencer requires the following packages/applications:
+- `biopandas` (with `pandas` and `numpy`)
+- `x3DNA`
+- `pymol`
+
 ### Using `venv`
 
 ```bash
