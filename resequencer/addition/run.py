@@ -1,13 +1,10 @@
-import sys
 from pathlib import Path
-import subprocess
-import tempfile
 
+import pandas as pd
 from biopandas.pdb import PandasPdb
 from pandas import DataFrame
 
-# conda install -c conda-forge -c schrodinger pymol-bundle, requires python 3.10
-from pymol import cmd
+from resequencer.external import run_x3dna, run_pymol
 
 from .add import Addition, load_addition_file
 
@@ -56,151 +53,88 @@ def pdb_addition(
         #                                     pymol                                    #
         # ---------------------------------------------------------------------------- #
 
-        # TODO:
-        # Questions:
-        # 1. Best way to calculate resi range?
         run_pymol(
             addition, chain_type, pdb.pdb_path, new_path, aligned_path, is_print_only
         )
+
+        if not aligned_path.exists():
+            continue
+
+        # Update working atoms and the pdb object so subsequent iterations see the change
+        atoms = append_addition(atoms, addition, aligned_path)
+
+    pdb.df["ATOM"] = atoms
     return pdb
 
 
-def run_x3dna(
+def append_addition(
+    atoms: DataFrame,
     addition: Addition,
-    chain: DataFrame,
-    chain_type: str,
-    new_path: Path,
-):
-    # Calculate the length of the first mini helix part
-    base_count: int = addition.total_bp - 10  # + len(addition.sequence)
-
-    res_cols = ["residue_number", "residue_name"]
-    if not set(res_cols).issubset(chain.columns):
-        raise KeyError(f"Chain DataFrame missing required columns: {res_cols}")
-
-    unique_residues = chain[res_cols].drop_duplicates().reset_index(drop=True)
-    # optional: as a list of tuples (residue_number, residue_name)
-    unique_residue_list = [tuple(x) for x in unique_residues.to_numpy()]
-
-    if base_count <= 0:
-        raise ValueError("base_count must be > 0")
-    if base_count > len(unique_residue_list):
-        raise ValueError(
-            f"Requested base_count ({base_count}) exceeds available residues ({len(unique_residue_list)})"
-        )
-
-    # take the last `base_count` residues (preserves their original order)
-    last_residues = unique_residue_list[-base_count:]
-
-    # sequence made from residue names (trimmed and uppercased)
-    tail_sequence = "".join(
-        name.strip().upper().strip("D") for _, name in last_residues
-    )
-    new_sequence = "".join(a.strip().upper().strip("D") for a in addition.sequence)
-    mini_helix: str = tail_sequence + new_sequence
-
-    is_rna = (
-        "-rna" if ("U" in mini_helix.upper() and "T" not in mini_helix.upper()) else ""
-    )
-    # Build command
-    fiber_cmd = ["fiber", f"-{chain_type.lower()}"]
-    if is_rna:
-        fiber_cmd.append(is_rna)
-    fiber_cmd.append(f"-seq={mini_helix}")
-    fiber_cmd.append(str(new_path))
-
-    is_print_only = False
-    # ------------------------------ x3DNA Commands ------------------------------ #
-    # Run on Linux/macOS, print on Windows
-    if sys.platform.startswith("linux") or sys.platform == "darwin":
-        with tempfile.TemporaryDirectory() as temp:
-            try:
-                print("Running fiber...", file=sys.stderr)
-                subprocess.run(fiber_cmd, cwd=temp, check=True)
-            except subprocess.CalledProcessError as e:
-                print(f"Command failed ({e.returncode}): {e}", file=sys.stderr)
-                is_print_only = True
-    else:
-        is_print_only = True
-
-    if is_print_only:
-        # On Windows or error just print the commands
-        print("--- x3DNA Command ---", file=sys.stderr)
-        print(" ".join(fiber_cmd), file=sys.stderr)
-
-    return is_print_only
-
-
-def run_pymol(
-    addition: Addition,
-    chain_type: str,
-    input_file: str,
-    new_path: Path,
     aligned_path: Path,
-    print_mode: bool = False,
-) -> None:
-    # ----------------------------- Calculate Extract ---------------------------- #
+) -> DataFrame:
     excess_length: int = addition.total_bp - 10
+    aligned_pdb = PandasPdb().read_pdb(aligned_path)
+    aligned_atoms = aligned_pdb.df["ATOM"]
 
-    # NOTE: Determine if this is the proper method to calculate the resi range
-    """
-    Example: If chain type is A, total_bp is 12, start position is 12
-        - excess_length is 12-10 = 2
-        - excess_start is 12 - 2 = 10.
-        - We then add 1 to not include excess start, or 10 + 1 = 11
-        - Lastly, it ends at start position = 12.
-    Example: If chain type is B, total_bp is 12, start position is 12,
-        - excess length is 12-10 = 2, 
-        - excess_start = 12
-        - We then add 1 to not enclude start pos, or 12 + 1 = 13
-        - excess_end = it ends at start position + excess_length = 12 + 2 = 14
-    """
-
-    excess_start: int = (
-        addition.start_position
-        if chain_type.upper() == "B"
-        else addition.start_position - excess_length
-    )
-    excess_start += 1
-    excess_end: int = (
-        addition.start_position + excess_length
-        if chain_type.upper() == "B"
-        else addition.start_position
-    )
-    extraction: str = " ".join(
-        [f"chain {chain_type.upper()}", "and", "resi", f"{excess_start}-{excess_end}"]
-    )
-
-    # --------------------------------- Run pymol -------------------------------- #
-    if not print_mode:
-        print("Running pymol...", file=sys.stderr)
-        # load /PATH/TO/input_file.pdb
-        cmd.load(input_file)
-        original_obj: str = cmd.get_names("objects")[0]
-        # extract temp, chain A and resi 11-12 or chain B and resi 13-14)
-        cmd.extract("temp", extraction)
-        # load /PATH/TO/new.pdb
-        cmd.load(str(new_path))
-        # delete input_file
-        cmd.delete(original_obj)
-        # super new.pdb, temp
-        cmd.super("new", "temp")
-        # multisave /PATH/TO/aligned.pdb
-        cmd.multisave(str(aligned_path))
-    else:
-        print_output = []
-        original_obj = Path(input_file).stem
-        print_output.extend(["pymol", input_file, "-c", "-d"])
-        command = []
-        command.extend(
-            [
-                f"extract temp, {extraction}",
-                f"load {str(new_path)}",
-                f"delete {original_obj}",
-                "super new, temp",
-                f"multisave {str(aligned_path)}",
-            ]
+    # Collect unique residue numbers from the aligned atoms
+    if "residue_number" not in aligned_atoms.columns:
+        raise KeyError(
+            "Aligned PDB DataFrame missing required column: 'residue_number'"
         )
-        print_output.append(f"'{';'.join(command)}'")
-        print("--- pymol Commands ---", file=sys.stderr)
-        print(" ".join(print_output), file=sys.stderr)
+
+    unique_residues: list[int] = (
+        aligned_atoms["residue_number"].drop_duplicates().astype(int).tolist()
+    )
+
+    drop_count = excess_length * 2
+    if drop_count <= 0:
+        # nothing to drop
+        target_residues = unique_residues
+    else:
+        # safely drop the first drop_count entries and redundant entries
+        target_residues = unique_residues[drop_count + excess_length : -excess_length]
+
+    # collect matching atom rows (ensure residue_number ints)
+    mask = aligned_atoms["residue_number"].astype(int).isin(target_residues)
+    collected_atoms = aligned_atoms.loc[mask].copy()
+
+    start_pos: int = int(addition.start_position) + 1
+    incremental_residues: list[int] = list(
+        range(start_pos, start_pos + len(target_residues))
+    )
+    # create mapping from original target residues to incremental residues
+    res_map = dict(zip(target_residues, incremental_residues))
+
+    # map and replace residue numbers in collected_atoms
+    mapped = collected_atoms["residue_number"].astype(int).map(res_map)
+    if mapped.isnull().any():
+        missing = sorted(
+            set(collected_atoms["residue_number"].astype(int).unique())
+            - set(res_map.keys())
+        )
+        raise KeyError(f"Failed to map some residue_number values: {missing}")
+    collected_atoms["residue_number"] = mapped.astype(int)
+
+    # Ensure residue_number columns are ints
+    atoms["residue_number"] = atoms["residue_number"].astype(int)
+    collected_atoms["residue_number"] = collected_atoms["residue_number"].astype(int)
+
+    # Determine insertion point and how many residue indices are being inserted
+    insert_after = int(addition.total_bp)
+    n_insert = collected_atoms["residue_number"].nunique()
+
+    # Shift residue numbers for atoms that come after the insertion point
+    shift_mask_left = atoms["residue_number"] <= insert_after
+    shift_mask_right = atoms["residue_number"] > insert_after
+    if shift_mask_right.any():
+        atoms.loc[shift_mask_right, "residue_number"] = (
+            atoms.loc[shift_mask_right, "residue_number"] + n_insert
+        )
+
+    first_half = atoms.loc[shift_mask_left]
+    second_half = atoms.loc[shift_mask_right]
+
+    # Combnie atoms
+    combined = pd.concat([first_half, collected_atoms, second_half], ignore_index=True)
+    
+    return combined
