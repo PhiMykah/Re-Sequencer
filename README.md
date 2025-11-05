@@ -19,6 +19,13 @@ Re-Sequencer requires the following packages/applications:
 - `biopandas` (with `pandas` and `numpy`)
 - `x3DNA`
 - `pymol`
+- `Linux/Mac` (windows not yet supported)
+
+### Installing x3DNA
+
+1. Make an account on [x3DNA-DSSR](http://forum.x3dna.org/index.php) to access downloads
+2. Download 3DNA classic [here](http://forum.x3dna.org/index.php?topic=248.0)
+3. Follow the Guide for installing on linux/Mac [here](http://forum.x3dna.org/howtos/how-to-install-3dna-on-linux-and-windows/): 
 
 ### Using `venv`
 
