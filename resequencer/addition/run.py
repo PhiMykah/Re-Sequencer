@@ -5,6 +5,7 @@ from biopandas.pdb import PandasPdb
 from pandas import DataFrame
 
 from resequencer.external import run_x3dna, run_pymol
+from resequencer.pdb import refactor_column, update_ter
 
 from .add import Addition, load_addition_file
 
@@ -62,6 +63,22 @@ def pdb_addition(
 
         # Update working atoms and the pdb object so subsequent iterations see the change
         atoms = append_addition(atoms, addition, aligned_path)
+
+        # change end of chains
+        # find last row for chain A and chain B (case-insensitive)
+        a_mask = atoms["chain_id"].astype(str).str.upper() == "A"
+        b_mask = atoms["chain_id"].astype(str).str.upper() == "B"
+
+        a_idx_list = atoms.index[a_mask].tolist()
+        b_idx_list = atoms.index[b_mask].tolist()
+
+        last_a_row = int(a_idx_list[-1]) if a_idx_list else None
+        last_b_row = int(b_idx_list[-1]) if b_idx_list else None
+
+        if last_a_row:
+            update_ter(pdb, atoms.iloc[last_a_row], "A")
+        if last_b_row:
+            update_ter(pdb, atoms.iloc[last_b_row], "B")
 
     pdb.df["ATOM"] = atoms
     return pdb
@@ -132,9 +149,41 @@ def append_addition(
         )
 
     first_half = atoms.loc[shift_mask_left]
+
+    # Align indices and assign new atom numbers
+    collected_atoms = refactor_column(
+        collected_atoms,
+        "atom_number",
+        int(first_half["atom_number"].iloc[-1]) + 1,
+        len(collected_atoms),
+    )
+
+    collected_atoms = refactor_column(
+        collected_atoms,
+        "line_idx",
+        int(first_half["line_idx"].iloc[-1]) + 1,
+        len(collected_atoms),
+    )
+
     second_half = atoms.loc[shift_mask_right]
 
-    # Combnie atoms
+    # Align indices and assign new atom numbers
+    second_half = refactor_column(
+        second_half,
+        "atom_number",
+        int(collected_atoms["atom_number"].iloc[-1]) + 1,
+        len(second_half),
+    )
+
+    second_half = refactor_column(
+        second_half,
+        "line_idx",
+        int(collected_atoms["line_idx"].iloc[-1]) + 1,
+        len(second_half),
+    )
+
+    # Combine atoms
     combined = pd.concat([first_half, collected_atoms, second_half], ignore_index=True)
-    
-    return combined
+
+    combined.to_csv("output/combined.csv")
+    return combined.reset_index(drop=True)
