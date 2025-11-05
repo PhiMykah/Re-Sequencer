@@ -27,6 +27,16 @@ Re-Sequencer requires the following packages/applications:
 2. Download 3DNA classic [here](http://forum.x3dna.org/index.php?topic=248.0)
 3. Follow the Guide for installing on linux/Mac [here](http://forum.x3dna.org/howtos/how-to-install-3dna-on-linux-and-windows/): 
 
+### Installing pymol
+
+#### Option A
+Pymol can be installed using conda with the following command:
+```bash
+conda install -c conda-forge -c schrodinger pymol-bundle, requires python 3.10
+```
+#### Option B
+Pymol can be installed from [the website](https://www.pymol.org/)
+
 ### Using `venv`
 
 ```bash
