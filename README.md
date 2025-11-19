@@ -17,9 +17,8 @@ Set up a Python virtual environment using either `venv` or `conda` to manage dep
 
 Re-Sequencer requires the following packages/applications:
 - `biopandas` (with `pandas` and `numpy`)
-- `x3DNA`
 - `pymol`
-- `Linux/Mac` (windows not yet supported)
+- `cython`
 
 ### Installing Dependencies
 
@@ -50,8 +49,10 @@ If you choose to use [*venv*](https://docs.python.org/3/library/venv.html), you 
     cd Re-Sequencer # or cd Re-Sequencer-main
     pip install -e .
     ```
-    This installs the current directory as a python package, and the `-e` flag marks it as editable. This means if you update Re-Sequencer in the future using `git pull` or `git pull --rebase`, it will update the package automatically
+    This installs the current directory as a python package, and the `-e` flag marks it as editable. This means if you update Re-Sequencer in the future using `git pull` or `git pull --rebase`, it will update the package automatically. For changes to the c code you may need to re-do the `pip install -e .` to recompile the c code.
 
+    When running `pip install -e .`, if you get installation errors, make sure to `conda install` the required packages above. 
+    
 4. Test that **Re-Sequencer** has been successfully installed:
     ```bash
     resequencer --help
