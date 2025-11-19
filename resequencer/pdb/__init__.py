@@ -1,3 +1,3 @@
-from .refactor import refactor_column, update_ter
+from .refactor import refactor_column, update_ter, update_hetatm
 
-__all__ = ["refactor_column", "update_ter"]
+__all__ = ["refactor_column", "update_ter", "update_hetatm"]

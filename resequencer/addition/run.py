@@ -5,7 +5,7 @@ from biopandas.pdb import PandasPdb
 from pandas import DataFrame
 
 from resequencer.external import run_x3dna, run_pymol
-from resequencer.pdb import refactor_column, update_ter
+from resequencer.pdb import refactor_column, update_ter, update_hetatm
 
 from .add import Addition, load_addition_file
 
@@ -81,6 +81,45 @@ def pdb_addition(
             update_ter(pdb, atoms.iloc[last_b_row], "B")
 
     pdb.df["ATOM"] = atoms
+    last_line_idx = update_hetatm(pdb)
+    others = pdb.df["OTHERS"]
+    if last_line_idx is not None and others is not None and not others.empty:
+        keys_order = ["ENDMDL", "MASTER", "END"]
+        for key in keys_order:
+            # build per-key mask based on available columns
+            if "record_name" in others.columns:
+                per_mask = others["record_name"].astype(str) == key
+            elif "line" in others.columns:
+                per_mask = others["line"].astype(str).str.split().str[0] == key
+            else:
+                per_mask = pd.Series(False, index=others.index)
+
+            if not per_mask.any():
+                continue
+
+            new_idx = int(last_line_idx) + 1
+
+            if "line_idx" in others.columns:
+                others.loc[per_mask, "line_idx"] = new_idx
+            elif "line_number" in others.columns:
+                others.loc[per_mask, "line_number"] = new_idx
+            elif "line" in others.columns:
+
+                def _replace_idx(s, idx):
+                    s = str(s).rstrip()
+                    parts = s.split()
+                    if parts and parts[-1].isdigit():
+                        parts[-1] = str(idx)
+                        return " ".join(parts)
+                    return s + " " + str(idx)
+
+                others.loc[per_mask, "line"] = others.loc[per_mask, "line"].apply(
+                    lambda s: _replace_idx(s, new_idx)
+                )
+
+            # increment for the next key
+            last_line_idx = new_idx
+        pdb.df["OTHERS"] = others
     return pdb
 
 

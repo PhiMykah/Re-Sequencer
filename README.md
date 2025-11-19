@@ -21,40 +21,41 @@ Re-Sequencer requires the following packages/applications:
 - `pymol`
 - `Linux/Mac` (windows not yet supported)
 
-### Installing x3DNA
+### Installing Dependencies
 
-1. Make an account on [x3DNA-DSSR](http://forum.x3dna.org/index.php) to access downloads
-2. Download 3DNA classic [here](http://forum.x3dna.org/index.php?topic=248.0)
-3. Follow the Guide for installing on linux/Mac [here](http://forum.x3dna.org/howtos/how-to-install-3dna-on-linux-and-windows/): 
+It is recommended that you use [`conda`](https://www.anaconda.com/docs/getting-started/miniconda/install) to install the dependecies for resequencer. 
 
-### Installing pymol
+#### Manual `pymol` installation with venv
+If you choose to use [*venv*](https://docs.python.org/3/library/venv.html), you will need to install `pymol` through the website [here](https://www.pymol.org/). Pymol must be added to your path and able to run through the command line. This *has not* been thoroughly tested, so proceed at your own risk.
 
-#### Option A
-Pymol can be installed using conda with the following command:
-```bash
-conda install -c conda-forge -c schrodinger pymol-bundle, requires python 3.10
-```
-#### Option B
-Pymol can be installed from [the website](https://www.pymol.org/)
+### Installation
 
-### Using `venv`
+1. Either clone the repository with the following line:
+    ```bash
+    git clone https://github.com/PhiMykah/Re-Sequencer
+    ```
+    or [download the main zip file](https://github.com/PhiMykah/Re-Sequencer/archive/refs/heads/main.zip) on Github and extract the Re-Sequencer Folder.
 
-```bash
-git clone https://github.com/PhiMykah/Re-Sequencer
-cd Re-Sequencer
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-pip install -e . 
-```
+2. After installing `conda`, execute the following code, making sure to type `y` when prompted:
+    ```bash
+    conda create -n resequencer python=3.10
+    conda activate resequencer
+    conda config --append channels conda-forge
+    conda install biopandas
+    conda install -c conda-forge -c schrodinger pymol-bundle
+    ```
 
-### Using `conda`
+3. Run the following command to install Re-Sequencer to your environment:
+    ```bash
+    cd Re-Sequencer # or cd Re-Sequencer-main
+    pip install -e .
+    ```
+    This installs the current directory as a python package, and the `-e` flag marks it as editable. This means if you update Re-Sequencer in the future using `git pull` or `git pull --rebase`, it will update the package automatically
 
-```bash
-git clone https://github.com/PhiMykah/Re-Sequencer
-conda env create -f resequencer_env.yml
-conda activate resequencer
-pip install -e . 
-```
+4. Test that **Re-Sequencer** has been successfully installed:
+    ```bash
+    resequencer --help
+    ```
+    It is recommended you do excute this command in another directory to ensure it is not only working in the main directory.
 
 After activating your environment, you can manage the project without affecting your global Python installation.

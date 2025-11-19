@@ -43,7 +43,7 @@ def update_ter(pdb: PandasPdb, new_chain: Series, chain_type: str):
         else ("text" if "text" in others.columns else others.columns[-1])
     )
 
-    # get the TER entries as strings and check for 'A' in the whitespace-separated tokens of each entry
+    # get the TER entries as strings and check for chain_type in the whitespace-separated tokens of each entry
     termini_entries = others.loc[termini_mask, entry_col].astype(str)
     chain_mask = termini_entries.apply(
         lambda s: chain_type.upper()
@@ -127,3 +127,44 @@ def update_ter(pdb: PandasPdb, new_chain: Series, chain_type: str):
 
     # small debug prints
     print("Updated TER entry for chain", chain_type, "->", new_entry)
+
+
+def update_hetatm(pdb: PandasPdb):
+    atoms = pdb.df["ATOM"]
+    max_atom_num = atoms["atom_number"].max()
+    last_atom = atoms.iloc[atoms.index[atoms["atom_number"] == max_atom_num]]
+    last_atom_idx = last_atom["line_idx"]
+
+    hetatm = pdb.df["HETATM"]
+
+    # work with a clean sequential index so ranges align to rows
+    hetatm = hetatm.reset_index(drop=True)
+
+    # safe atom numbers
+    atom_nums = list(range(max_atom_num + 1, max_atom_num + 1 + len(hetatm)))
+
+    # compute a safe start for line indices (handle scalar or Series)
+    try:
+        # if last_atom_idx is a Series/array, take its last element; else coerce to int
+        if hasattr(last_atom_idx, "iloc"):
+            last_idx_val = int(last_atom_idx.iloc[-1])
+        elif isinstance(last_atom_idx, (list, tuple)):
+            last_idx_val = int(last_atom_idx[-1])
+        else:
+            last_idx_val = int(last_atom_idx)
+    except Exception:
+        last_idx_val = 0
+
+    new_idxs = list(range(last_idx_val + 2, last_idx_val + 2 + len(hetatm)))
+
+    # assign new atom numbers
+    hetatm.loc[:, "atom_number"] = atom_nums
+
+    # assign new line indices if column exists
+    if "line_idx" in hetatm.columns:
+        hetatm.loc[:, "line_idx"] = new_idxs
+
+    pdb.df["HETATM"] = hetatm
+    print("Updated HETATM atom numbers and line_idx")
+
+    return last_idx_val + 2 + len(hetatm)

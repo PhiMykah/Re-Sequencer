@@ -14,17 +14,17 @@ def main(argv: list = sys.argv[1:]) -> None:
     args = parse_args(argv)
 
     # Collect pdb from file or from
-    pdb_path = Path(args.pdb)
+    pdb_path = Path(args.input)
     if pdb_path.is_file():
         pdb: PandasPdb = PandasPdb().read_pdb(pdb_path)
     else:
-        pdb: PandasPdb = PandasPdb().fetch_pdb(args.pdb)
+        pdb: PandasPdb = PandasPdb().fetch_pdb(args.input)
 
     # ----------------------- Calculate Tasks for Printing ----------------------- #
 
-    if args.input and args.add:
+    if args.sub and args.add:
         operation_count = 2
-    elif args.input or args.add:
+    elif args.sub or args.add:
         operation_count = 1
     else:
         operation_count = 0
@@ -33,8 +33,8 @@ def main(argv: list = sys.argv[1:]) -> None:
 
     # ------------------------------- Substitution ------------------------------- #
 
-    if args.input:
-        pdb = pdb_substitution(args.input, pdb)
+    if args.sub:
+        pdb = pdb_substitution(args.sub, pdb)
         print(
             f"Substitution Complete! Operation ({operation_idx} of {operation_count}) ",
             file=sys.stderr,

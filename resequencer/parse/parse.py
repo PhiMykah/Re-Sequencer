@@ -23,27 +23,39 @@ def build_parser() -> argparse.ArgumentParser:
         "-help",
         action="help",
         default=argparse.SUPPRESS,
-        help="Show this help message and exit",
+        help="",
     )
     # PDB File or PDB ID
-    parser.add_argument(
-        "--pdb",
-        "-pdb",
-        type=str,
-        metavar="'PDB File or PDB ID'",
-        required=True,
-        dest="pdb",
-        help="Path to PDB file or PDB ID",
-    )
-    # Input File (.in)
     parser.add_argument(
         "--input",
         "-input",
         "-in",
         type=str,
-        metavar="'Substitution Input File (.in)'",
+        metavar="'PDB File or PDB ID'",
+        required=True,
         dest="input",
+        help="Path to PDB file or PDB ID",
+    )
+    # Input File (.in)
+    parser.add_argument(
+        "--sub",
+        "-substitute",
+        "-sub",
+        type=str,
+        metavar="'Substitution Input File (.in)'",
+        dest="sub",
         help="Input file for substitution",
+        default="",
+    )
+    # Chain Addition (.chain)
+    parser.add_argument(
+        "--add",
+        "-add",
+        "-a",
+        "--add-chain",
+        type=str,
+        dest="add",
+        help="Input file for chain additions",
         default="",
     )
     # Output File (.pdb)
@@ -56,17 +68,6 @@ def build_parser() -> argparse.ArgumentParser:
         dest="output",
         help="Output PDB File after substitution",
         default="output.pdb",
-    )
-    # Chain Addition (.chain)
-    parser.add_argument(
-        "--add",
-        "-add",
-        "-a",
-        "--add-chain",
-        type=str,
-        dest="add",
-        help="Input file for chain additions",
-        default="",
     )
     return parser
 
@@ -87,13 +88,13 @@ class CLargs(argparse.Namespace):
 
     def __init__(
         self,
-        pdb: str,
-        sub_input: str,
+        pdb_input: str,
+        sub: str,
         output: str,
         add: str,
     ) -> None:
-        self.pdb: str = pdb
-        self.input: str = sub_input
+        self.input: str = pdb_input
+        self.sub: str = sub
         self.output: str = output
         self.add: str = add
 
@@ -115,7 +116,7 @@ def parse_args(argv: list[str] | None = None) -> CLargs:
 
     parser: argparse.ArgumentParser = build_parser()
     args: argparse.Namespace = parser.parse_args(argv)
-    return CLargs(args.pdb, args.input, args.output, args.add)
+    return CLargs(args.input, args.sub, args.output, args.add)
 
 
 if __name__ == "__main__":

@@ -4,8 +4,7 @@
 
 development/
 data/
-output/ 
-x3dna/
+output/
 
 # ---------------------------------------------------------------------------- #
 #                                Python Ignores                                #

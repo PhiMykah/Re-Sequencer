@@ -47,6 +47,7 @@ BASE_PATTERN = re.compile(r"(?:D[AGCT]|[AGCU])", re.IGNORECASE)
 
 def load_addition_file(file: Path) -> dict[int, Addition]:
     additions: dict[int, Addition] = {}
+    # TODO - Combine chain to add and start position in chain to add into residue 3'
     with file.open("r") as f:
         for line_number, line in enumerate(f, start=1):
             line: str = line.strip()
