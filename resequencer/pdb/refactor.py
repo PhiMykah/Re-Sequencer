@@ -165,6 +165,6 @@ def update_hetatm(pdb: PandasPdb):
         hetatm.loc[:, "line_idx"] = new_idxs
 
     pdb.df["HETATM"] = hetatm
-    print("Updated HETATM atom numbers and line_idx")
+    print("Updated HETATM entries")
 
     return last_idx_val + 2 + len(hetatm)

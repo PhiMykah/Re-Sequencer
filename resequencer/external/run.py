@@ -54,21 +54,13 @@ def run_x3dna(
     fiber_cmd.append(f"-seq={mini_helix}")
     fiber_cmd.append(f"{str(new_path)}")
 
-    run_fiber(fiber_cmd)
-
-    is_print_only = False
-    # ------------------------------ x3DNA Commands ------------------------------ #
-    # Run on Linux/macOS, print on Windows
-    if sys.platform.startswith("linux") or sys.platform == "darwin":
-        with tempfile.TemporaryDirectory() as temp:
-            try:
-                print("Running fiber...", file=sys.stderr)
-                subprocess.run(fiber_cmd, cwd=temp, check=True)
-            except subprocess.CalledProcessError as e:
-                print(f"Command failed ({e.returncode}): {e}", file=sys.stderr)
-                is_print_only = True
-    else:
+    try:
+        print("Running fiber...", file=sys.stderr)
+        run_fiber(fiber_cmd)
+        is_print_only = False
+    except Exception as e:
         is_print_only = True
+        print(f"Error running fiber: {e}", file=sys.stderr)
 
     if is_print_only:
         # On Windows or error just print the commands

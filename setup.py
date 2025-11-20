@@ -29,13 +29,13 @@ fiber_ext = Extension(
         ("X3DNA_DIR", f'"{str(x3dna_dir.as_posix())}"'),
     ]
     if sys.platform.startswith("win")
-    else [],
+    else [("X3DNA_DIR", f'"{str(x3dna_dir.as_posix())}"')],
     # extra_compile_args=[""],
 )
 
 setup(
     name="resequencer",
-    version="0.2.0",
+    version="0.2.5",
     packages=find_packages(),
     install_requires=["biopandas", "pandas", "Cython"],
     ext_modules=cythonize([fiber_ext]),
