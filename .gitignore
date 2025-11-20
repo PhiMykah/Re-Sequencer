@@ -5,6 +5,7 @@
 development/
 data/
 output/
+fiber_bindings.c 
 
 # ---------------------------------------------------------------------------- #
 #                                Python Ignores                                #
