@@ -64,10 +64,10 @@ def build_parser() -> argparse.ArgumentParser:
         "-output",
         "-out",
         type=str,
-        metavar="'Output File (.pdb)",
-        dest="output",
-        help="Output PDB File after substitution",
-        default="output.pdb",
+        metavar="'Output Path",
+        dest="output_path",
+        help="Output Path for Finished PDB and Intermediate Steps",
+        default="output",
     )
     return parser
 
@@ -95,7 +95,7 @@ class CLargs(argparse.Namespace):
     ) -> None:
         self.input: str = pdb_input
         self.sub: str = sub
-        self.output: str = output
+        self.output_path: str = output
         self.add: str = add
 
 
@@ -116,7 +116,7 @@ def parse_args(argv: list[str] | None = None) -> CLargs:
 
     parser: argparse.ArgumentParser = build_parser()
     args: argparse.Namespace = parser.parse_args(argv)
-    return CLargs(args.input, args.sub, args.output, args.add)
+    return CLargs(args.input, args.sub, args.output_path, args.add)
 
 
 if __name__ == "__main__":

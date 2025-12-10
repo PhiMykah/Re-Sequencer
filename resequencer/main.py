@@ -44,7 +44,7 @@ def main(argv: list = sys.argv[1:]) -> None:
     # --------------------------------- Addition --------------------------------- #
 
     if args.add:
-        pdb = pdb_addition(args.add, pdb, args.output)
+        pdb = pdb_addition(args.add, pdb, args.output_path)
         print(
             f"Sequence Addition Complete! Operation ({operation_idx} of {operation_count}) ",
             file=sys.stderr,
@@ -53,12 +53,16 @@ def main(argv: list = sys.argv[1:]) -> None:
     # ------------------------------- Output Result ------------------------------ #
 
     if operation_count != 0:
+        output_path = Path(args.output_path)
+        output_dir = output_path.parent if output_path.is_file() else output_path
         print(
-            f"Outputting new pdb to {args.output}...",
+            f'Outputting new pdb to path: "{output_dir}"',
             file=sys.stderr,
         )
-        Path(args.output).parent.mkdir(parents=True, exist_ok=True)
-        pdb.to_pdb(path=args.output, records=None, gz=False)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        pdb.to_pdb(
+            path=str(output_dir.absolute() / "output.pdb"), records=None, gz=False
+        )
     else:
         print("No operations performed. Closing...", file=sys.stderr)
 

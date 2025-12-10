@@ -13,7 +13,7 @@ from .add import Addition, load_addition_file
 def pdb_addition(
     input_file: str,
     pdb: PandasPdb,
-    output: Path | str = Path.cwd().resolve(),
+    output_path: Path | str = Path.cwd().resolve(),
 ) -> PandasPdb:
     # Collect atoms from pdb
     atoms: DataFrame = pdb.df["ATOM"]
@@ -27,12 +27,11 @@ def pdb_addition(
 
     # ---------------------------- Create path objects --------------------------- #
 
-    output_path: Path = (
-        output if isinstance(output, Path) else Path(output).parent.resolve()
-    )
-    Path.mkdir(output_path, exist_ok=True, parents=True)
-    new_path: Path = output_path / "new.pdb"
-    aligned_path: Path = output_path / "aligned.pdb"
+    output_path = Path(output_path)
+    output_dir = output_path.parent if output_path.is_file() else output_path
+    Path.mkdir(output_dir, exist_ok=True, parents=True)
+    new_path: Path = output_dir / "new.pdb"
+    aligned_path: Path = output_dir / "aligned.pdb"
 
     # Obtain the last n-10 bases and save it as new.pdb
     for idx, addition in additions.items():
@@ -224,5 +223,5 @@ def append_addition(
     # Combine atoms
     combined = pd.concat([first_half, collected_atoms, second_half], ignore_index=True)
 
-    combined.to_csv("output/combined.csv")
+    # combined.to_csv("output/combined.csv")
     return combined.reset_index(drop=True)
