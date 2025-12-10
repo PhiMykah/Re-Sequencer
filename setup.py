@@ -30,7 +30,7 @@ fiber_ext = Extension(
     ]
     if sys.platform.startswith("win")
     else [("X3DNA_DIR", f'"{str(x3dna_dir.as_posix())}"')],
-    # extra_compile_args=[""],
+    extra_compile_args=["-std=c99"],
 )
 
 setup(
