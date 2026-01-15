@@ -12,11 +12,11 @@ class Substitution:
     chain (str)
         The chain identifier where the substitution occurs.
     residue (int)
-        he residue number in the sequence.
+        The residue number in the sequence.
     base (str)
-        The original base or amino acid at the specified position.
+        The original nucleotide base  at the specified position.
     new_base (str)
-        The new base or amino acid replacing the original.
+        The new nucleotide base replacing the original.
     """
 
     chain: str

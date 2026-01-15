@@ -141,6 +141,7 @@ def append_addition(
         aligned_atoms["residue_number"].drop_duplicates().astype(int).tolist()
     )
 
+    # Extract unique residues from N-10 tail
     drop_count = excess_length * 2
     if drop_count <= 0:
         # nothing to drop
@@ -153,6 +154,7 @@ def append_addition(
     mask = aligned_atoms["residue_number"].astype(int).isin(target_residues)
     collected_atoms = aligned_atoms.loc[mask].copy()
 
+    # Begin tail-end addition
     start_pos: int = int(addition.start_position) + 1
     incremental_residues: list[int] = list(
         range(start_pos, start_pos + len(target_residues))
@@ -186,6 +188,8 @@ def append_addition(
             atoms.loc[shift_mask_right, "residue_number"] + n_insert
         )
 
+    # ------------------- Stitch the first half and second half ------------------ #
+    
     first_half = atoms.loc[shift_mask_left]
 
     # Align indices and assign new atom numbers

@@ -13,7 +13,7 @@ class Addition:
     chains (tuple[str, ...])
         The chain type of each nucleic acid strand, expects 2
     target_chain (int)
-        The Chain of which addition of base pairs needs to be made
+        The Chain of where base pairs are added
     start_position (int)
         Position on chain after which to add bps
 
@@ -29,7 +29,7 @@ class Addition:
 
         (same as geometry of bases in the original pdb)
     total_bp (int)
-        Total number of base pairs in original biomecular sequence.
+        Total number of base pairs in original biomolecular sequence.
     """
 
     chains: tuple[str, ...]
