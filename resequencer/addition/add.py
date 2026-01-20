@@ -33,11 +33,14 @@ class Addition:
     """
 
     chains: tuple[str, ...]
-    target_chain: int
+    target_chain: str
     start_position: int
     sequence: list[str]
     original_geometry: str
-    total_bp: int
+
+    @classmethod
+    def mini_helix_tail(cls):
+        return 2
 
 
 # Precompiled regex for DNA/RNA bases
@@ -60,11 +63,13 @@ def load_addition_file(file: Path) -> dict[int, Addition]:
                 [p.strip() for p in line.split(",")] if "," in line else line.split()
             )
 
-            # Ignore lines with items greater than 4
-            if len(parts) != 7:
+            # Ignore lines with items greater than 6
+            if len(parts) < 6:
                 continue
+            else:
+                parts = parts[:6]
 
-            *chains, target_chain, start_pos, seq, original_geometry, total_bp = parts
+            *chains, target_chain, start_pos, seq, original_geometry = parts
 
             seq_list = BASE_PATTERN.findall(seq)
 
@@ -78,11 +83,10 @@ def load_addition_file(file: Path) -> dict[int, Addition]:
 
             additions[line_number] = Addition(
                 tuple(chains),
-                int(target_chain),
+                target_chain,
                 int(start_pos),
                 seq_list,
                 original_geometry,
-                int(total_bp),
             )
 
     return additions

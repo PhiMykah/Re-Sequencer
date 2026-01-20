@@ -36,12 +36,17 @@ def pdb_addition(
     # Obtain the last n-10 bases and save it as new.pdb
     for idx, addition in additions.items():
         # Determine the target chain type to modify
-        target_chain: int = (
-            addition.target_chain - 1 if addition.target_chain > 0 else 0
-        )
-        chain_type: str = addition.chains[target_chain]
+        if addition.target_chain not in addition.chains:
+            raise TypeError(
+                f"Target chain {addition.target_chain} is not"
+                " in list of provided chains {','.join(addition.chains)}"
+            )
+        chain_type: str = addition.target_chain
 
         chain: DataFrame = atoms[atoms["chain_id"] == chain_type.upper()]
+
+        if chain.empty:
+            raise ValueError(f"Target chain '{chain_type}' is not in provided pdb!")
 
         # ---------------------------------------------------------------------------- #
         #                               x3DNA Mini Helix                               #
@@ -53,9 +58,7 @@ def pdb_addition(
         #                                     pymol                                    #
         # ---------------------------------------------------------------------------- #
 
-        run_pymol(
-            addition, chain_type, pdb.pdb_path, new_path, aligned_path, is_print_only
-        )
+        run_pymol(addition, pdb.pdb_path, new_path, aligned_path, is_print_only)
 
         if not aligned_path.exists():
             continue
@@ -127,7 +130,7 @@ def append_addition(
     addition: Addition,
     aligned_path: Path,
 ) -> DataFrame:
-    excess_length: int = addition.total_bp - 10
+    excess_length: int = Addition.mini_helix_tail()
     aligned_pdb = PandasPdb().read_pdb(aligned_path)
     aligned_atoms = aligned_pdb.df["ATOM"]
 
@@ -141,7 +144,7 @@ def append_addition(
         aligned_atoms["residue_number"].drop_duplicates().astype(int).tolist()
     )
 
-    # Extract unique residues from N-10 tail
+    # Extract unique residues from tail
     drop_count = excess_length * 2
     if drop_count <= 0:
         # nothing to drop
@@ -177,7 +180,7 @@ def append_addition(
     collected_atoms["residue_number"] = collected_atoms["residue_number"].astype(int)
 
     # Determine insertion point and how many residue indices are being inserted
-    insert_after = int(addition.total_bp)
+    insert_after = int(addition.start_position)
     n_insert = collected_atoms["residue_number"].nunique()
 
     # Shift residue numbers for atoms that come after the insertion point
@@ -189,7 +192,7 @@ def append_addition(
         )
 
     # ------------------- Stitch the first half and second half ------------------ #
-    
+
     first_half = atoms.loc[shift_mask_left]
 
     # Align indices and assign new atom numbers

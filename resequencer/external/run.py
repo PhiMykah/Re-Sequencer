@@ -1,6 +1,4 @@
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 from pandas import DataFrame
@@ -16,8 +14,8 @@ def run_x3dna(
     chain_type: str,
     new_path: Path,
 ):
-    # Calculate the length of the first mini helix part
-    base_count: int = addition.total_bp - 10  # + len(addition.sequence)
+    # Identify the base count for the original portion of the tail
+    base_count: int = Addition.mini_helix_tail()
 
     res_cols = ["residue_number", "residue_name"]
     if not set(res_cols).issubset(chain.columns):
@@ -27,28 +25,33 @@ def run_x3dna(
     # optional: as a list of tuples (residue_number, residue_name)
     unique_residue_list = [tuple(x) for x in unique_residues.to_numpy()]
 
-    if base_count <= 0:
-        raise ValueError("base_count must be > 0")
     if base_count > len(unique_residue_list):
         raise ValueError(
             f"Requested base_count ({base_count}) exceeds available residues ({len(unique_residue_list)})"
         )
 
-    # take the last `base_count` residues (preserves their original order)
-    last_residues = unique_residue_list[-base_count:]
+    # take the last or first `base_count` residues (preserves their original order)
+    if addition.start_position == 1:
+        tail_residues = unique_residue_list[:base_count]
+    else:
+        tail_residues = unique_residue_list[-base_count:]
 
     # sequence made from residue names (trimmed and uppercased)
     tail_sequence = "".join(
-        name.strip().upper().strip("D") for _, name in last_residues
+        name.strip().upper().strip("D") for _, name in tail_residues
     )
     new_sequence = "".join(a.strip().upper().strip("D") for a in addition.sequence)
-    mini_helix: str = tail_sequence + new_sequence
+
+    if addition.start_position == 1:
+        mini_helix: str = new_sequence + tail_sequence
+    else:
+        mini_helix: str = tail_sequence + new_sequence
 
     is_rna = (
         "-rna" if ("U" in mini_helix.upper() and "T" not in mini_helix.upper()) else ""
     )
     # Build command
-    fiber_cmd = ["fiber", f"-{chain_type.lower()}"]
+    fiber_cmd = ["fiber", f"-{addition.original_geometry.lower()}"]
     if is_rna:
         fiber_cmd.append(is_rna)
     fiber_cmd.append(f"-seq={mini_helix}")
@@ -72,14 +75,13 @@ def run_x3dna(
 
 def run_pymol(
     addition: Addition,
-    chain_type: str,
     input_file: str,
     new_path: Path,
     aligned_path: Path,
     print_mode: bool = False,
 ) -> None:
     # ----------------------------- Calculate Extract ---------------------------- #
-    excess_length: int = addition.total_bp - 10
+    excess_length: int = Addition.mini_helix_tail()
 
     """
     Example: If chain type is A, total_bp is 12, start position is 12

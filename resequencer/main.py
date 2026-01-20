@@ -15,10 +15,24 @@ def main(argv: list = sys.argv[1:]) -> None:
 
     # Collect pdb from file or from
     pdb_path = Path(args.input)
-    if pdb_path.is_file():
-        pdb: PandasPdb = PandasPdb().read_pdb(pdb_path)
-    else:
-        pdb: PandasPdb = PandasPdb().fetch_pdb(args.input)
+    try:
+        if pdb_path.is_file():
+            pdb: PandasPdb = PandasPdb().read_pdb(
+                pdb_path.rename(pdb_path.with_suffix(".pdb"))
+            )
+        else:
+            try:
+                pdb: PandasPdb = PandasPdb().fetch_pdb(args.input)
+            except Exception as e:
+                raise ValueError(
+                    "Could not find file for input nor find pdb on rscb or alphafold."
+                    f"Input: {args.input}. {str(e)}"
+                )
+
+    except FileExistsError:
+        raise FileExistsError(
+            "Unable to rename input file to pdb, as the file already exists!"
+        )
 
     # ----------------------- Calculate Tasks for Printing ----------------------- #
 
