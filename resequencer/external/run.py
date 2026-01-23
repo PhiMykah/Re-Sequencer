@@ -10,31 +10,75 @@ from resequencer.external.x3dna.fiber_bindings import run_fiber
 
 def run_x3dna(
     addition: Addition,
-    chain: DataFrame,
+    target_chain: DataFrame,
+    other_chain: DataFrame,
     chain_type: str,
     new_path: Path,
-):
+) -> tuple[bool, bool, tuple[int, int], tuple[int, int]]:
     # Identify the base count for the original portion of the tail
     base_count: int = Addition.mini_helix_tail()
 
     res_cols = ["residue_number", "residue_name"]
-    if not set(res_cols).issubset(chain.columns):
-        raise KeyError(f"Chain DataFrame missing required columns: {res_cols}")
+    if not set(res_cols).issubset(target_chain.columns):
+        raise KeyError(f"Target Chain DataFrame missing required columns: {res_cols}")
+    if not set(res_cols).issubset(other_chain.columns):
+        raise KeyError(f"Pair Chain DataFrame missing required columns: {res_cols}")
 
-    unique_residues = chain[res_cols].drop_duplicates().reset_index(drop=True)
-    # optional: as a list of tuples (residue_number, residue_name)
-    unique_residue_list = [tuple(x) for x in unique_residues.to_numpy()]
+    # Represent residues as a list of tuples (residue_number, residue_name)
+    target_chain_residues: list[tuple[int, str]] = [
+        tuple(x)
+        for x in target_chain[res_cols]
+        .drop_duplicates()
+        .reset_index(drop=True)
+        .to_numpy()
+    ]
 
-    if base_count > len(unique_residue_list):
+    # Represent pother chain's residues as a list of tuples (residue_number, residue_name)
+    other_chain_residues: list[tuple[int, str]] = [
+        tuple(x)
+        for x in other_chain[res_cols]
+        .drop_duplicates()
+        .reset_index(drop=True)
+        .to_numpy()
+    ]
+
+    if base_count > len(target_chain_residues):
         raise ValueError(
-            f"Requested base_count ({base_count}) exceeds available residues ({len(unique_residue_list)})"
+            f"Requested base_count ({base_count}) exceeds available residues ({len(target_chain_residues)})"
         )
 
+    # Find smallest and largest residue number
+    target_residue_numbers: list[int] = [res[0] for res in target_chain_residues]
+    other_residue_numbers: list[int] = [res[0] for res in other_chain_residues]
+
+    min_residue = min(target_residue_numbers)
+    max_residue = max(target_residue_numbers)
+
     # take the last or first `base_count` residues (preserves their original order)
-    if addition.start_position == 1:
-        tail_residues = unique_residue_list[:base_count]
+    if abs(addition.start_position - min_residue) < abs(
+        addition.start_position - max_residue
+    ):
+        tail_residues = target_chain_residues[:base_count]
+        target_range = (
+            target_residue_numbers[0],
+            target_residue_numbers[base_count - 1],
+        )
+        other_range = (
+            other_residue_numbers[len(other_residue_numbers) - base_count],
+            other_residue_numbers[len(other_residue_numbers) - 1],
+        )
+        add_from_start = True
     else:
-        tail_residues = unique_residue_list[-base_count:]
+        tail_residues = target_chain_residues[-base_count:]
+        add_from_start = False
+        target_range: tuple[int, int] = (
+            target_residue_numbers[len(other_residue_numbers) - base_count],
+            target_residue_numbers[len(other_residue_numbers) - 1],
+        )
+        other_range: tuple[int, int] = (
+            other_residue_numbers[0],
+            other_residue_numbers[base_count - 1],
+        )
 
     # sequence made from residue names (trimmed and uppercased)
     tail_sequence = "".join(
@@ -42,7 +86,8 @@ def run_x3dna(
     )
     new_sequence = "".join(a.strip().upper().strip("D") for a in addition.sequence)
 
-    if addition.start_position == 1:
+    # Check if adding new sequence to start or end of tail
+    if add_from_start:
         mini_helix: str = new_sequence + tail_sequence
     else:
         mini_helix: str = tail_sequence + new_sequence
@@ -70,7 +115,7 @@ def run_x3dna(
         print("--- x3DNA Command ---", file=sys.stderr)
         print(" ".join(fiber_cmd), file=sys.stderr)
 
-    return is_print_only
+    return is_print_only, add_from_start, target_range, other_range
 
 
 def run_pymol(
@@ -78,37 +123,25 @@ def run_pymol(
     input_file: str,
     new_path: Path,
     aligned_path: Path,
+    target_range: tuple[int, int],
+    other_range: tuple[int, int],
     print_mode: bool = False,
+    add_from_start: bool = False,
 ) -> None:
     # ----------------------------- Calculate Extract ---------------------------- #
-    excess_length: int = Addition.mini_helix_tail()
-
-    """
-    Example: If chain type is A, total_bp is 12, start position is 12
-        - excess_length is 12-10 = 2
-        - excess_start is 12 - 2 = 10.
-        - We then add 1 to not include excess start, or 10 + 1 = 11
-        - Lastly, it ends at start position = 12.
-    Example: If chain type is B, total_bp is 12, start position is 12,
-        - excess length is 12-10 = 2, 
-        - excess_start = 12
-        - We then add 1 to not enclude start pos, or 12 + 1 = 13
-        - excess_end = it ends at start position + excess_length = 12 + 2 = 14
-    """
 
     extract_chain = []
 
-    for chain_val in ("A", "B"):
-        excess_start: int = (
-            addition.start_position
-            if chain_val == "B"
-            else addition.start_position - excess_length
+    for chain_val in addition.chains:
+        start = (
+            target_range[0]
+            if chain_val.upper() == addition.target_chain
+            else other_range[0]
         )
-        excess_start += 1
-        excess_end: int = (
-            addition.start_position + excess_length
-            if chain_val == "B"
-            else addition.start_position
+        end = (
+            target_range[1]
+            if chain_val.upper() == addition.target_chain
+            else other_range[1]
         )
         extract_chain.append(
             " ".join(
@@ -116,7 +149,7 @@ def run_pymol(
                     f"(chain {chain_val}",
                     "and",
                     "resi",
-                    f"{excess_start}-{excess_end})",
+                    f"{start}-{end})",
                 ]
             )
         )
@@ -129,14 +162,17 @@ def run_pymol(
         # load /PATH/TO/input_file.pdb
         cmd.load(input_file)
         original_obj: str = cmd.get_names("objects")[0]
-        # extract temp, chain A and resi 11-12 or chain B and resi 13-14)
+        # extract temp, chain A and resi 11-12 or chain B and resi 13-14
         cmd.extract("temp", extraction)
         # load /PATH/TO/new.pdb
         cmd.load(str(new_path))
         # delete input_file
         cmd.delete(original_obj)
         # super new.pdb, temp
-        cmd.super("new", "temp")
+        if add_from_start:
+            cmd.super("temp", "new")
+        else:
+            cmd.super("new", "temp")
         # multisave /PATH/TO/aligned.pdb
         cmd.multisave(str(aligned_path))
     else:
@@ -149,7 +185,7 @@ def run_pymol(
                 f"extract temp, {extraction}",
                 f"load {str(new_path)}",
                 f"delete {original_obj}",
-                "super new, temp",
+                f"{'super temp, new' if add_from_start else 'super new, temp'}",
                 f"multisave {str(aligned_path)}",
             ]
         )

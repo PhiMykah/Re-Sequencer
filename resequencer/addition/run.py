@@ -33,7 +33,6 @@ def pdb_addition(
     new_path: Path = output_dir / "new.pdb"
     aligned_path: Path = output_dir / "aligned.pdb"
 
-    # Obtain the last n-10 bases and save it as new.pdb
     for idx, addition in additions.items():
         # Determine the target chain type to modify
         if addition.target_chain not in addition.chains:
@@ -43,33 +42,51 @@ def pdb_addition(
             )
         chain_type: str = addition.target_chain
 
-        chain: DataFrame = atoms[atoms["chain_id"] == chain_type.upper()]
+        # Set the other_chain type to the chain that isn't target
+        other_chain_type = (
+            addition.chains[0]
+            if addition.chains[1].upper() == addition.target_chain
+            else addition.chains[1]
+        )
+        target_chain: DataFrame = atoms[atoms["chain_id"] == chain_type.upper()]
+        other_chain: DataFrame = atoms[atoms["chain_id"] == other_chain_type.upper()]
 
-        if chain.empty:
+        if target_chain.empty:
             raise ValueError(f"Target chain '{chain_type}' is not in provided pdb!")
 
         # ---------------------------------------------------------------------------- #
         #                               x3DNA Mini Helix                               #
         # ---------------------------------------------------------------------------- #
 
-        is_print_only = run_x3dna(addition, chain, chain_type, new_path)
+        is_print_only, add_from_start, target_range, other_range = run_x3dna(
+            addition, target_chain, other_chain, chain_type, new_path
+        )
 
         # ---------------------------------------------------------------------------- #
         #                                     pymol                                    #
         # ---------------------------------------------------------------------------- #
 
-        run_pymol(addition, pdb.pdb_path, new_path, aligned_path, is_print_only)
+        run_pymol(
+            addition,
+            pdb.pdb_path,
+            new_path,
+            aligned_path,
+            target_range,
+            other_range,
+            is_print_only,
+            add_from_start,
+        )
 
         if not aligned_path.exists():
             continue
 
         # Update working atoms and the pdb object so subsequent iterations see the change
-        atoms = append_addition(atoms, addition, aligned_path)
+        atoms = append_addition(atoms, addition, aligned_path, add_from_start)
 
         # change end of chains
         # find last row for chain A and chain B (case-insensitive)
-        a_mask = atoms["chain_id"].astype(str).str.upper() == "A"
-        b_mask = atoms["chain_id"].astype(str).str.upper() == "B"
+        a_mask = atoms["chain_id"].astype(str).str.upper() == addition.chains[0].upper()
+        b_mask = atoms["chain_id"].astype(str).str.upper() == addition.chains[1].upper()
 
         a_idx_list = atoms.index[a_mask].tolist()
         b_idx_list = atoms.index[b_mask].tolist()
@@ -78,9 +95,9 @@ def pdb_addition(
         last_b_row = int(b_idx_list[-1]) if b_idx_list else None
 
         if last_a_row:
-            update_ter(pdb, atoms.iloc[last_a_row], "A")
+            update_ter(pdb, atoms.iloc[last_a_row], addition.chains[0].upper())
         if last_b_row:
-            update_ter(pdb, atoms.iloc[last_b_row], "B")
+            update_ter(pdb, atoms.iloc[last_b_row], addition.chains[1].upper())
 
     pdb.df["ATOM"] = atoms
     last_line_idx = update_hetatm(pdb)
@@ -129,6 +146,7 @@ def append_addition(
     atoms: DataFrame,
     addition: Addition,
     aligned_path: Path,
+    add_from_start: bool,
 ) -> DataFrame:
     excess_length: int = Addition.mini_helix_tail()
     aligned_pdb = PandasPdb().read_pdb(aligned_path)
@@ -140,9 +158,10 @@ def append_addition(
             "Aligned PDB DataFrame missing required column: 'residue_number'"
         )
 
-    unique_residues: list[int] = (
-        aligned_atoms["residue_number"].drop_duplicates().astype(int).tolist()
-    )
+    res_numbers = aligned_atoms["residue_number"]
+    unique_residues: list[int] = res_numbers[
+        res_numbers.ne(res_numbers.shift())
+    ].tolist()
 
     # Extract unique residues from tail
     drop_count = excess_length * 2
@@ -155,32 +174,57 @@ def append_addition(
 
     # collect matching atom rows (ensure residue_number ints)
     mask = aligned_atoms["residue_number"].astype(int).isin(target_residues)
-    collected_atoms = aligned_atoms.loc[mask].copy()
+    collected_atoms: DataFrame = aligned_atoms.loc[mask].copy()
 
-    # Begin tail-end addition
-    start_pos: int = int(addition.start_position) + 1
+    # Begin tail-end or front-end addition
+    if add_from_start:
+        start_pos: int = 1
+    else:
+        start_pos: int = int(addition.start_position) + 1
     incremental_residues: list[int] = list(
         range(start_pos, start_pos + len(target_residues))
     )
     # create mapping from original target residues to incremental residues
     res_map = dict(zip(target_residues, incremental_residues))
+    # create mapping from original chain to specific chain
+    chain_ids = collected_atoms["chain_id"].unique().tolist()
+    chain_pairs = []
 
-    # map and replace residue numbers in collected_atoms
-    mapped = collected_atoms["residue_number"].astype(int).map(res_map)
-    if mapped.isnull().any():
+    # NOTE: Assumes that the chain ids are in the same order as the addition chains!!!
+    for idx, chain_id in enumerate(chain_ids):
+        chain_pairs.append((chain_id, addition.chains[idx]))
+    chain_map = dict(chain_pairs)
+
+    # ------------ map and replace residue numbers in collected_atoms ------------ #
+    residue_mapped = collected_atoms["residue_number"].astype(int).map(res_map)
+    if residue_mapped.isnull().any():
         missing = sorted(
             set(collected_atoms["residue_number"].astype(int).unique())
             - set(res_map.keys())
         )
         raise KeyError(f"Failed to map some residue_number values: {missing}")
-    collected_atoms["residue_number"] = mapped.astype(int)
+    collected_atoms["residue_number"] = residue_mapped.astype(int)
 
     # Ensure residue_number columns are ints
     atoms["residue_number"] = atoms["residue_number"].astype(int)
     collected_atoms["residue_number"] = collected_atoms["residue_number"].astype(int)
 
+    # ---------------- map and replace chain id in collected_atoms --------------- #
+    chain_mapped = collected_atoms["chain_id"].astype(str).map(chain_map)
+    if chain_mapped.isnull().any():
+        missing = sorted(
+            set(collected_atoms["chainX_id"].astype(str).unique())
+            - set(chain_map.keys())
+        )
+        raise KeyError(f"Failed to map some chain_id values: {missing}")
+    collected_atoms["chain_id"] = chain_mapped.astype(str)
+
+    # Ensure chain_id columns are str
+    atoms["chain_id"] = atoms["chain_id"].astype(str)
+    collected_atoms["chain_id"] = collected_atoms["chain_id"].astype(str)
+
     # Determine insertion point and how many residue indices are being inserted
-    insert_after = int(addition.start_position)
+    insert_after = 0 if add_from_start else int(addition.start_position)
     n_insert = collected_atoms["residue_number"].nunique()
 
     # Shift residue numbers for atoms that come after the insertion point
@@ -191,11 +235,13 @@ def append_addition(
             atoms.loc[shift_mask_right, "residue_number"] + n_insert
         )
 
-    # ------------------- Stitch the first half and second half ------------------ #
+    # ---------------------------------------------------------------------------- #
+    #                             Stitch data together                             #
+    # ---------------------------------------------------------------------------- #
 
     first_half = atoms.loc[shift_mask_left]
 
-    # Align indices and assign new atom numbers
+    # Re-index by aligning indices and assign new atom numbers
     collected_atoms = refactor_column(
         collected_atoms,
         "atom_number",
