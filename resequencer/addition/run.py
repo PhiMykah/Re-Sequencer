@@ -4,8 +4,15 @@ import pandas as pd
 from biopandas.pdb import PandasPdb
 from pandas import DataFrame
 
-from resequencer.external import run_x3dna, run_pymol
-from resequencer.pdb import refactor_column, update_ter, update_hetatm
+from resequencer.external import run_pymol, run_x3dna
+from resequencer.pdb import (
+    dataframe_to_chains,
+    chains_to_dataframe,
+    match_overhangs,
+    refactor_column,
+    update_hetatm,
+    update_ter,
+)
 
 from .add import Addition, load_addition_file
 
@@ -32,6 +39,21 @@ def pdb_addition(
     Path.mkdir(output_dir, exist_ok=True, parents=True)
     new_path: Path = output_dir / "new.pdb"
     aligned_path: Path = output_dir / "aligned.pdb"
+
+    # Add complementary base pairs to overhangs
+    pdb = match_overhangs(pdb)
+
+    # ------------------ Check if dataframe_to_chains conversion ----------------- #
+    # chain_list = dataframe_to_chains(atoms)
+    # test_atoms = chains_to_dataframe(chain_list)
+
+    # atoms_original = atoms.drop(columns=["line_idx"])
+    # atoms_new = test_atoms.drop(columns=["line_idx"])
+    # comparison = atoms_original.compare(atoms_new)
+    # assert comparison.empty, "Original and Test Atoms DataFrames have differences"
+    # assert atoms_original.equals(atoms_new), (
+    #     "Original and Test Atoms DataFrames are not equivalent"
+    # )
 
     for idx, addition in additions.items():
         # Determine the target chain type to modify
