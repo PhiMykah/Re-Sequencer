@@ -15,7 +15,6 @@ class PDBChain:
         self._chain_id = chain_id
         self._starting_idx = starting_idx
         self._set_residues(residues, chain_id, starting_idx)
-        pass
 
     # ---------------------------------------------------------------------------- #
     #                              Getters and Setters                             #
@@ -57,13 +56,22 @@ class PDBChain:
     # ---------------------------------------------------------------------------- #
 
     def append(self, residue: PDBResidue) -> None:
-        pass
+        residue.chain_id = self._chain_id
+        self._residues.append(residue)
+        self._reorder_residue_numbers(self._residues[0].residue_number)
 
     def insert(self, residue: PDBResidue, idx: int) -> None:
-        pass
+        residue.chain_id = self._chain_id
+        self._residues.insert(idx, residue)
+        self._reorder_residue_numbers(self._residues[0].residue_number)
 
     def remove(self, idx: int) -> None:
-        pass
+        self._residues.pop(idx)
+        self._reorder_residue_numbers(self._residues[0].residue_number)
+
+    # ---------------------------------------------------------------------------- #
+    #                              Modifying Residues                              #
+    # ---------------------------------------------------------------------------- #
 
     # ---------------------------------------------------------------------------- #
     #                            Characteristic Methods                            #
@@ -75,6 +83,10 @@ class PDBChain:
     # ---------------------------------------------------------------------------- #
     #                               Helper Functions                               #
     # ---------------------------------------------------------------------------- #
+
+    def _reorder_residue_numbers(self, starting_number) -> None:
+        for idx, residue in enumerate(self._residues):
+            residue.residue_number = starting_number + idx
 
     def _set_residues(
         self, residues: list[PDBResidue], chain_id: str, starting_idx: int
@@ -96,6 +108,21 @@ class PDBChain:
 
     def __len__(self) -> int:
         return len(self._residues)
+
+    def __iter__(self):
+        self.iteraton: int = 0
+        return self
+
+    def __next__(self) -> PDBResidue:
+        if self.iteraton < len(self._residues):
+            res = self._residues[self.iteraton]
+            self.iteraton += 1
+            return res
+        else:
+            raise StopIteration
+
+    def __getitem__(self, indices) -> PDBResidue:
+        return self._residues[indices]
 
 
 def dataframe_to_chains(atom: DataFrame):

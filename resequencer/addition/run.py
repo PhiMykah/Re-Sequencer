@@ -9,10 +9,13 @@ from resequencer.pdb import (
     dataframe_to_chains,
     chains_to_dataframe,
     match_overhangs,
+    trim_overhangs,
     refactor_column,
     update_hetatm,
     update_ter,
+    PDBChain,
 )
+from resequencer.pdb.residue import PDBResidue
 
 from .add import Addition, load_addition_file
 
@@ -40,8 +43,10 @@ def pdb_addition(
     new_path: Path = output_dir / "new.pdb"
     aligned_path: Path = output_dir / "aligned.pdb"
 
+    # Trim overhang base pairs
+    pdb = trim_overhangs(pdb)
     # Add complementary base pairs to overhangs
-    pdb = match_overhangs(pdb)
+    # pdb = match_overhangs(pdb)
 
     # ------------------ Check if dataframe_to_chains conversion ----------------- #
     # chain_list = dataframe_to_chains(atoms)
@@ -70,18 +75,32 @@ def pdb_addition(
             if addition.chains[1].upper() == addition.target_chain
             else addition.chains[1]
         )
-        target_chain: DataFrame = atoms[atoms["chain_id"] == chain_type.upper()]
-        other_chain: DataFrame = atoms[atoms["chain_id"] == other_chain_type.upper()]
 
-        if target_chain.empty:
+        assert chain_type != other_chain_type, "Target chain is the same as other chain"
+        target_chain: PDBChain | None = None
+        other_chain: PDBChain | None = None
+
+        chain_list = dataframe_to_chains(atoms)
+        for chain in chain_list:
+            if chain_type == chain.chain_id:
+                target_chain: PDBChain | None = chain
+            if other_chain_type == chain.chain_id:
+                other_chain: PDBChain | None = chain
+        # target_chain: DataFrame = atoms[atoms["chain_id"] == chain_type.upper()]
+        # other_chain: DataFrame = atoms[atoms["chain_id"] == other_chain_type.upper()]
+
+        if target_chain is None:
             raise ValueError(f"Target chain '{chain_type}' is not in provided pdb!")
+
+        if other_chain is None:
+            raise ValueError(f"Other chain '{chain_type}' is not in provided pdb!")
 
         # ---------------------------------------------------------------------------- #
         #                               x3DNA Mini Helix                               #
         # ---------------------------------------------------------------------------- #
 
         is_print_only, add_from_start, target_range, other_range = run_x3dna(
-            addition, target_chain, other_chain, chain_type, new_path
+            addition, target_chain, other_chain, new_path
         )
 
         # ---------------------------------------------------------------------------- #
@@ -198,7 +217,6 @@ def append_addition(
     mask = aligned_atoms["residue_number"].astype(int).isin(target_residues)
     collected_atoms: DataFrame = aligned_atoms.loc[mask].copy()
 
-    # Begin tail-end or front-end addition
     if add_from_start:
         start_pos: int = 1
     else:
@@ -300,3 +318,94 @@ def append_addition(
 
     # combined.to_csv("output/combined.csv")
     return combined.reset_index(drop=True)
+
+
+def new_append_addition(
+    atoms: DataFrame,
+    addition: Addition,
+    aligned_path: Path,
+    add_from_start: bool,
+) -> DataFrame:
+    excess_length: int = Addition.mini_helix_tail()
+    aligned_pdb: PandasPdb = PandasPdb().read_pdb(aligned_path)
+    aligned_atoms: DataFrame = aligned_pdb.df["ATOM"]
+
+    atom_chains: list[PDBChain] = dataframe_to_chains(atoms)
+    aligned_chains: list[PDBChain] = dataframe_to_chains(aligned_atoms)
+
+    aligned_residues: list[PDBResidue] = []
+    for chain in aligned_chains:
+        aligned_residues += [residue for residue in chain]
+
+    drop_count: int = excess_length * 2
+    if drop_count <= 0:
+        collected_atoms: list[PDBResidue] = aligned_residues
+    else:
+        collected_atoms = aligned_residues[drop_count + excess_length : -excess_length]
+
+    atom_count = len(collected_atoms)
+    if (atom_count % 2) != 0:
+        raise ValueError(
+            "Addition to pdb is uneven, received {len(atom_count)}, expected even number"
+        )
+
+    target_chain: PDBChain | None = None
+    other_chain: PDBChain | None = None
+    target_chain_id: tuple[str, int] = ("", 0)
+    other_chain_id: tuple[str, int] = ("", 0)
+    target_chain_addition: list[PDBResidue] = collected_atoms[: atom_count // 2]
+    other_chain_addition: list[PDBResidue] = collected_atoms[atom_count // 2 :]
+
+    for idx, chain in enumerate(atom_chains):
+        if chain.chain_id == addition.target_chain:
+            target_chain = chain
+            target_chain_id = (chain.chain_id, idx)
+        elif chain.chain_id in addition.chains:
+            other_chain = chain
+            other_chain_id = (chain.chain_id, idx)
+
+    if target_chain is None:
+        raise ValueError(f"Unable to find Target chain {addition.target_chain} in PDB!")
+    if other_chain is None:
+        raise ValueError(
+            f"Unable to find other chain in pdb (expected {','.join(addition.chains)})"
+        )
+
+    # if add_from_start:
+    #     last_residue = target_chain[-1].residue_number
+    #     new_residues = [
+    #         (1, len(target_chain_addition)),
+    #         (last_residue + 1, last_residue + len(other_chain_addition)),
+    #     ]
+    # else:
+    #     start_pos: int = int(addition.start_position) + 1
+    #     new_residues = [
+    #         (
+    #             start_pos,
+    #             start_pos + len(target_chain_addition) - 1,
+    #         ),
+    #         (
+    #             1,
+    #             len(other_chain_addition),
+    #         ),
+    #     ]
+
+    # for idx, res in enumerate(new_residues[0]):
+    #     target_chain_addition[idx].residue_number = res
+    #     target_chain_addition[idx].chain_id = target_chain_id[0]
+    # for idx, res in enumerate(new_residues[1]):
+    #     other_chain_addition[idx].residue_number = res
+    #     other_chain_addition[idx].chain_id = other_chain_id[0]
+
+    if add_from_start:
+        for add in target_chain_addition:
+            atom_chains[target_chain_id[1]].insert(add, 0)
+        for add in other_chain_addition:
+            atom_chains[other_chain_id[1]].append(add)
+    else:
+        for add in target_chain_addition:
+            atom_chains[target_chain_id[1]].append(add)
+        for add in other_chain_addition:
+            atom_chains[other_chain_id[1]].insert(add, 0)
+
+    return chains_to_dataframe(atom_chains)

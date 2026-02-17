@@ -6,41 +6,26 @@ from pymol import cmd
 
 from resequencer.addition import Addition
 from resequencer.external.x3dna.fiber_bindings import run_fiber
+from resequencer.pdb import PDBChain
 
 
 def run_x3dna(
     addition: Addition,
-    target_chain: DataFrame,
-    other_chain: DataFrame,
-    chain_type: str,
+    target_chain: PDBChain,
+    other_chain: PDBChain,
     new_path: Path,
 ) -> tuple[bool, bool, tuple[int, int], tuple[int, int]]:
     # Identify the base count for the original portion of the tail
     base_count: int = Addition.mini_helix_tail()
 
-    res_cols = ["residue_number", "residue_name"]
-    if not set(res_cols).issubset(target_chain.columns):
-        raise KeyError(f"Target Chain DataFrame missing required columns: {res_cols}")
-    if not set(res_cols).issubset(other_chain.columns):
-        raise KeyError(f"Pair Chain DataFrame missing required columns: {res_cols}")
-
     # Represent residues as a list of tuples (residue_number, residue_name)
-    target_chain_residues: list[tuple[int, str]] = [
-        tuple(x)
-        for x in target_chain[res_cols]
-        .drop_duplicates()
-        .reset_index(drop=True)
-        .to_numpy()
-    ]
+    target_chain_residues: list[tuple[int, str]] = []
+    for residue in target_chain:
+        target_chain_residues.append((residue.residue_number, residue.residue_name))
 
-    # Represent pother chain's residues as a list of tuples (residue_number, residue_name)
-    other_chain_residues: list[tuple[int, str]] = [
-        tuple(x)
-        for x in other_chain[res_cols]
-        .drop_duplicates()
-        .reset_index(drop=True)
-        .to_numpy()
-    ]
+    other_chain_residues: list[tuple[int, str]] = []
+    for residue in other_chain:
+        other_chain_residues.append((residue.residue_number, residue.residue_name))
 
     if base_count > len(target_chain_residues):
         raise ValueError(
