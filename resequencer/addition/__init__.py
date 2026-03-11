@@ -1,4 +1,3 @@
-from .add import Addition
-from .run import pdb_addition
+from .add import Addition, ChainRole, pdb_addition
 
-__all__ = ["Addition", "pdb_addition"]
+__all__ = ["Addition", "ChainRole", "pdb_addition"]

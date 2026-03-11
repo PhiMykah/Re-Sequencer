@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
+from sys import stderr
+
+from resequencer.pdb import PDB
 
 
 @dataclass
@@ -67,3 +70,18 @@ def load_substitution_file(file: Path) -> dict[int, Substitution]:
                 chain, int(residue), base, new_base
             )
     return substitutions
+
+
+def pdb_substitution(pdb: PDB, sub_input: Path) -> None:
+
+    if not sub_input.is_file():
+        raise Exception(f"Substitution file '{sub_input}' does not exist!")
+
+    substitutions: dict[int, Substitution] = load_substitution_file(sub_input)
+
+    for res_num, sub in substitutions.items():
+        print(
+            f"Chain {sub.chain}: Substituting {sub.base} with {sub.new_base} on residue {res_num}",
+            file=stderr,
+        )
+        pdb[sub.chain][res_num - 1].substitute(sub.base, sub.new_base)  # type: ignore

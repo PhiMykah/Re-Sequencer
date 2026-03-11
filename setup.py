@@ -35,13 +35,13 @@ fiber_ext = Extension(
 
 setup(
     name="resequencer",
-    version="0.2.5",
+    version="0.2.9",
     packages=find_packages(),
-    install_requires=["biopandas", "pandas", "Cython"],
+    install_requires=["biopandas", "biopython", "pandas", "pymol", "Cython"],
     ext_modules=cythonize([fiber_ext]),
     entry_points={
         "console_scripts": [
-            "resequencer = resequencer.main:main",
+            "resequencer = resequencer.main:entry",
         ]
     },
     author="Micah Smith",

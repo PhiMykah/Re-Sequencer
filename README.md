@@ -9,6 +9,28 @@ The **Re-Sequencer** project is designed to streamline and automate the modifica
 - Modular and extensible codebase
 - Python 3.10 Support 
 
+## Re-Sequencer Command Line Arguments
+
+```
+  -h, -help, --help     Show this help message and exit
+  
+  --input 'File or PDB ID', -input 'File or PDB ID'
+                        Path to PDB file or PDB ID
+  --fasta 'file.fasta', -fasta 'file.fasta', -f 'file.fasta'
+                        Path to the fasta file.
+  --form {a,b,z}, -form {a,b,z}
+                        Desired Structure of DNA/RNA, eg. b-form, a-form, z-form;
+  --sub 'substitute.in', -sub 'substitute.in'
+                        Input file for substitution
+  --add 'add.chain', -add 'add.chain'
+                        Path to chain addition input file.
+  --walk 'file.walk', -walk 'file.walk'
+                        Path to protein walk input file.
+  --output 'Path', -output 'Path'
+                        Output Path for Finished PDB and Intermediate Steps
+  --file 'Output.pdb', -file 'Output.pdb'
+                        File name for final output.
+```
 ## Building from Source
 
 Set up a Python virtual environment using either `venv` or `conda` to manage dependencies and isolate your development environment.
@@ -16,9 +38,10 @@ Set up a Python virtual environment using either `venv` or `conda` to manage dep
 ### Requirements
 
 Re-Sequencer requires the following packages/applications:
-- `biopandas` (with `pandas` and `numpy`)
+- `biopandas` (with `pandas`,`numpy`, and `biopython`)
 - `pymol`
 - `cython`
+- `pytest` (optional if running tests)
 
 ### Installing Dependencies
 

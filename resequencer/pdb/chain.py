@@ -1,15 +1,26 @@
-from pandas import DataFrame, to_numeric
-
-from resequencer.pdb.record import PDBRecord
-from .residue import PDBResidue
+from .residue import Residue
+from copy import deepcopy
 
 
-class PDBChain:
+class Chain:
+    """
+    Class representation of Chain in PDB and PandasPDB
+
+    Attributes
+    ----------
+    residues : list[Residue]
+        List of Residues in Chain
+    chain_id : str
+        Name or id of current chain
+    starting_idx : int
+        Starting index of first residue
+    """
+
     # ---------------------------------------------------------------------------- #
     #                        Initialization and Constructor                        #
     # ---------------------------------------------------------------------------- #
     def __init__(
-        self, residues: list[PDBResidue], chain_id: str, starting_idx: int = -1
+        self, residues: list[Residue], chain_id: str, starting_idx: int = -1
     ) -> None:
         self._residues = []
         self._chain_id = chain_id
@@ -22,11 +33,11 @@ class PDBChain:
 
     # --------------------------------- residues --------------------------------- #
     @property
-    def residues(self) -> list[PDBResidue]:
+    def residues(self) -> list[Residue]:
         return self._residues
 
     @residues.setter
-    def residues(self, value: list[PDBResidue]) -> None:
+    def residues(self, value: list[Residue]) -> None:
         self._set_residues(value, self._chain_id, self._starting_idx)
 
     # --------------------------------- chain_id --------------------------------- #
@@ -51,23 +62,83 @@ class PDBChain:
             self._set_residues(self._residues, self._chain_id, value)
         self._starting_idx = value
 
+    # ------------------------------- starting_res ------------------------------- #
+    @property
+    def starting_residue(self) -> int:
+        return self._starting_residue
+
+    @starting_residue.setter
+    def starting_residue(self, value: int) -> None:
+        self._starting_residue = value
+        self._reorder_residue_numbers(value)
+
     # ---------------------------------------------------------------------------- #
     #                                Modifying Chain                               #
     # ---------------------------------------------------------------------------- #
 
-    def append(self, residue: PDBResidue) -> None:
+    def append(self, residue: Residue) -> None:
+        """
+        Append a new residue to the chain and re-index residues
+
+        Parameters
+        ----------
+        residue : Residue
+            The residue to append to this chain.
+        """
         residue.chain_id = self._chain_id
         self._residues.append(residue)
         self._reorder_residue_numbers(self._residues[0].residue_number)
 
-    def insert(self, residue: PDBResidue, idx: int) -> None:
+    def insert(self, residue: Residue, idx: int) -> None:
+        """
+        Insert a new residue to the chain at the target index and re-index residues
+
+        Parameters
+        ----------
+        residue : Residue
+            The residue to append to this chain.
+        idx : int
+            Position to add new residue
+        """
         residue.chain_id = self._chain_id
         self._residues.insert(idx, residue)
         self._reorder_residue_numbers(self._residues[0].residue_number)
 
-    def remove(self, idx: int) -> None:
+    def remove(self, residue_number: int, reorder: bool = True) -> None:
+        """Remove a residue from the chain by residue number and re-index if necessary
+
+        Parameters
+        ----------
+        residue_number : int
+            Residue with given residue number to remove
+        reorder : bool, optional
+            Whether or not to reorder residue numbers, by default True
+        """
+        target_idx: int | None = None
+        for idx, res in enumerate(self.residues):
+            if res.residue_number == residue_number:
+                target_idx = idx
+
+        if target_idx is not None:
+            self.remove_at(target_idx, reorder)
+        else:
+            raise ValueError("Residue Number '{residue_number}', not in chain!")
+
+    def remove_at(self, idx: int, reorder: bool = True) -> None:
+        """
+        Remove a residue from the chain at index and re-index if necessary
+
+        Parameters
+        ----------
+        idx : int
+            Position to remove residue
+        reorder: bool
+            Whether or not to reorder residue numbers, by default True
+        """
+
         self._residues.pop(idx)
-        self._reorder_residue_numbers(self._residues[0].residue_number)
+        if reorder:
+            self._reorder_residue_numbers(self._residues[0].residue_number)
 
     # ---------------------------------------------------------------------------- #
     #                              Modifying Residues                              #
@@ -78,22 +149,51 @@ class PDBChain:
     # ---------------------------------------------------------------------------- #
 
     def total_length(self) -> int:
+        """
+        Collect the lengh of the chain based on the length of each residue
+
+        Returns
+        -------
+        int
+            Total length of chain by residue length
+        """
         return sum(len(res) for res in self._residues)
 
     # ---------------------------------------------------------------------------- #
     #                               Helper Functions                               #
     # ---------------------------------------------------------------------------- #
 
-    def _reorder_residue_numbers(self, starting_number) -> None:
+    def _reorder_residue_numbers(self, starting_number: int) -> None:
+        """
+        Re-index residues in chain by starting number
+
+        Parameters
+        ----------
+        starting_number : int
+            Residue number of first residue in chain
+        """
         for idx, residue in enumerate(self._residues):
             residue.residue_number = starting_number + idx
+        self._starting_residue = starting_number
 
     def _set_residues(
-        self, residues: list[PDBResidue], chain_id: str, starting_idx: int
+        self, residues: list[Residue], chain_id: str, starting_idx: int
     ) -> None:
+        """
+        Set residue list for Chain and ensure proper indexing for each line_idx
+
+        Parameters
+        ----------
+        residues : list[Residue]
+            List of Residues in Chain
+        chain_id : str
+            Name or id of current chain
+        starting_idx : int
+            Starting index of first residue
+        """
         if not residues:
             return
-        self._residues: list[PDBResidue] = []
+        self._residues: list[Residue] = []
         for idx, residue in enumerate(residues):
             if starting_idx == -1 and idx == 0:
                 self._starting_idx = residue.starting_idx
@@ -101,19 +201,76 @@ class PDBChain:
             residue.chain_id = chain_id
             # residue.residue_number = starting_idx + idx
             self._residues.append(residue)
+        self._starting_residue: int = self._residues[0].residue_number
 
     # ---------------------------------------------------------------------------- #
     #                                 Magic Methods                                #
     # ---------------------------------------------------------------------------- #
+    def __deepcopy__(self, memo):
+        """
+        Create a deep copy of the chain
+
+        Returns
+        -------
+        Chain
+            Deep copy of current chain
+        """
+        new_residues = [deepcopy(res, memo) for res in self._residues]
+        return Chain(new_residues, self._chain_id, self._starting_idx)
+
+    def __add__(self, other: "Chain") -> "Chain":
+        """
+        Add two chains together to create a new chain
+
+        Parameters
+        ----------
+        other : Chain
+            Chain to add to this chain
+
+        Returns
+        -------
+        Chain
+            New chain containing residues from both chains
+        """
+        combined_residues = self._residues + other._residues
+        new_chain = Chain(combined_residues, self._chain_id, self._starting_idx)
+        new_chain._reorder_residue_numbers(self._starting_residue)
+        return new_chain
 
     def __len__(self) -> int:
+        """
+        Get length of chain based on number of residues
+
+        Returns
+        -------
+        int
+            Number of residues
+        """
         return len(self._residues)
 
     def __iter__(self):
+        """Iterator for Chain
+
+        Returns
+        -------
+        self
+        """
         self.iteraton: int = 0
         return self
 
-    def __next__(self) -> PDBResidue:
+    def __next__(self) -> Residue:
+        """Next iteration for Chain iterator
+
+        Returns
+        -------
+        Residue
+            Next residue in iterator
+
+        Raises
+        ------
+        StopIteration
+            Stop iterator when completed
+        """
         if self.iteraton < len(self._residues):
             res = self._residues[self.iteraton]
             self.iteraton += 1
@@ -121,164 +278,18 @@ class PDBChain:
         else:
             raise StopIteration
 
-    def __getitem__(self, indices) -> PDBResidue:
+    def __getitem__(self, indices) -> Residue | list[Residue]:
+        """
+        Chain indexer
+
+        Parameters
+        ----------
+        indices : int | slice
+            Index or indices of residue
+
+        Returns
+        -------
+        Residue | list[Residue]
+            Current residue(s) at provided index/indices
+        """
         return self._residues[indices]
-
-
-def dataframe_to_chains(atom: DataFrame):
-    chains: list[PDBChain] = []
-    residues: list[PDBResidue] = []
-    records: list[PDBRecord] = []
-
-    chain_groups: dict = {
-        chain_id: chain_data for chain_id, chain_data in atom.groupby("chain_id")
-    }
-    for chain_id, chain in chain_groups.items():
-        residue_groups: dict = {
-            residue_number: residue_data
-            for residue_number, residue_data in chain.groupby("residue_number")
-        }
-        for res_id, res in residue_groups.items():
-            starting_idx: int = -1
-            residue_name: str = ""
-            first = True
-            for row in res.itertuples():
-                if first:
-                    starting_idx = int(to_numeric(row.Index))
-                    residue_name = str(row.residue_name)
-                    first = False
-                records.append(
-                    PDBRecord(
-                        int(to_numeric(row.Index)),
-                        str(row.record_name),
-                        int(to_numeric(row.atom_number)),
-                        str(row.atom_name),
-                        str(row.residue_name),
-                        str(row.chain_id),
-                        int(to_numeric(row.residue_number)),
-                        to_numeric(row.x_coord),
-                        to_numeric(row.y_coord),
-                        to_numeric(row.z_coord),
-                        to_numeric(row.occupancy),
-                        to_numeric(row.b_factor),
-                        str(row.segment_id),
-                        str(row.element_symbol),
-                        to_numeric(row.charge),
-                    )
-                )
-            residues.append(
-                PDBResidue(
-                    records, starting_idx, residue_name, int(res_id), str(chain_id)
-                )
-            )
-            records = []
-
-        chains.append(PDBChain(residues, str(chain_id)))
-        residues = []
-
-    return chains
-    # chain_id = ""
-    # curr_residue_number: int = -1
-    # curr_chain_id: str = ""
-
-    # for row in atom.itertuples():
-    #     idx: int = int(to_numeric(row.Index))
-    #     record_name: str = str(row.record_name)
-    #     atom_number: int = int(to_numeric(row.atom_number))
-    #     atom_name: str = str(row.atom_name)
-    #     residue_name: str = str(row.residue_name)
-    #     chain_id = str(row.chain_id)
-    #     residue_number = int(to_numeric(row.residue_number))
-    #     x_coord: float = to_numeric(row.x_coord)
-    #     y_coord: float = to_numeric(row.y_coord)
-    #     z_coord: float = to_numeric(row.z_coord)
-    #     occupancy: float = to_numeric(row.occupancy)
-    #     b_factor: float = to_numeric(row.b_factor)
-    #     segment_id: str = str(row.segment_id)
-    #     element_symbol: str = str(row.element_symbol)
-    #     charge: float = to_numeric(row.charge)
-
-    #     if idx == 0:
-    #         curr_residue_number = residue_number
-    #         curr_chain_id = chain_id
-
-    #     records.append(
-    #         PDBRecord(
-    #             idx,
-    #             record_name,
-    #             atom_number,
-    #             atom_name,
-    #             residue_name,
-    #             chain_id,
-    #             residue_number,
-    #             x_coord,
-    #             y_coord,
-    #             z_coord,
-    #             occupancy,
-    #             b_factor,
-    #             segment_id,
-    #             element_symbol,
-    #             charge,
-    #         )
-    #     )
-
-    #     if chain_id != curr_chain_id:
-    #         curr_chain_id = chain_id
-    #         if residues:
-    #             chains.append(
-    #                 PDBChain(residues, residues[0].chain_id, residues[0].starting_idx)
-    #             )
-    #         residues = []
-
-    #     if residue_number != curr_residue_number:
-    #         curr_residue_number = residue_number
-    #         if records:
-    #             residues.append(
-    #                 PDBResidue(
-    #                     records,
-    #                     records[0].residue_number,
-    #                     residue_name,
-    #                     records[0].line_idx,
-    #                     chain_id,
-    #                 )
-    #             )
-    #         records = []
-
-    # if residues:
-    #     chains.append(
-    #         PDBChain(residues, residues[0].chain_id, residues[0].starting_idx)
-    #     )
-    # return chains
-
-
-def chains_to_dataframe(chains: list[PDBChain]) -> DataFrame:
-    records = []
-    for chain in chains:
-        for residue in chain.residues:
-            for record in residue.records:
-                records.append(
-                    {
-                        "record_name": record.record_name,
-                        "atom_number": record.atom_number,
-                        "blank_1": "",
-                        "atom_name": record.atom_name,
-                        "alt_loc": "",
-                        "residue_name": record.residue_name,
-                        "blank_2": "",
-                        "chain_id": record.chain_id,
-                        "residue_number": record.residue_number,
-                        "insertion": "",
-                        "blank_3": "",
-                        "x_coord": record.x_coord,
-                        "y_coord": record.y_coord,
-                        "z_coord": record.z_coord,
-                        "occupancy": record.occupancy,
-                        "b_factor": record.b_factor,
-                        "blank_4": "",
-                        "segment_id": record.segment_id,
-                        "element_symbol": record.element_symbol,
-                        "charge": record.charge,
-                        "line_idx": record.line_idx,
-                    }
-                )
-    return DataFrame(records)

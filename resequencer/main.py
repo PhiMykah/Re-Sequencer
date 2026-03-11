@@ -1,54 +1,47 @@
 import sys
 from pathlib import Path
 
-from biopandas.pdb import PandasPdb
+from Bio.SeqRecord import SeqRecord
+from biopandas.pdb.pandas_pdb import PandasPdb
 
-from resequencer.parse import parse_args
-from resequencer.substitute import pdb_substitution
 from resequencer.addition import pdb_addition
+from resequencer.io import get_input_fasta, get_input_pdb
+from resequencer.parse import parse_args
+from resequencer.pdb import PDB
+from resequencer.substitute import pdb_substitution
 
 
-def main(argv: list = sys.argv[1:]) -> None:
+def entry(argv: list[str] = sys.argv[1:]) -> None:
+    """entry-point function for command-line and script
+
+    Parameters
+    ----------
+    argv : list[str], optional
+        Arguments to pass to Re-Sequencer, by default sys.argv[1:]
+    """
+
     # --------------------------------- Load PDB --------------------------------- #
     # Parse command-line arguments
-    args = parse_args(argv)
+    cl_args = parse_args(argv)  # Re-Sequencer command-line arguments
 
-    # Collect pdb from file or from
-    pdb_path = Path(args.input)
-    try:
-        if pdb_path.is_file():
-            pdb: PandasPdb = PandasPdb().read_pdb(
-                pdb_path.rename(pdb_path.with_suffix(".pdb"))
-            )
-        else:
-            try:
-                pdb: PandasPdb = PandasPdb().fetch_pdb(args.input)
-            except Exception as e:
-                raise ValueError(
-                    "Could not find file for input nor find pdb on rscb or alphafold."
-                    f"Input: {args.input}. {str(e)}"
-                )
+    input: PandasPdb = get_input_pdb(cl_args.pdb_input)
+    fasta: dict[str, SeqRecord] = get_input_fasta(cl_args.fasta_input)
 
-    except FileExistsError:
-        raise FileExistsError(
-            "Unable to rename input file to pdb, as the file already exists!"
-        )
-
+    pdb = PDB(input.df, fasta)
     # ----------------------- Calculate Tasks for Printing ----------------------- #
 
-    if args.sub and args.add:
-        operation_count = 2
-    elif args.sub or args.add:
-        operation_count = 1
-    else:
-        operation_count = 0
-
-    operation_idx = 1
+    # Increment operation count based on number of tasks
+    operation_count: int = (
+        int(bool(cl_args.sub_input))
+        + int(bool(cl_args.add_input))
+        + int(bool(cl_args.walk_input))
+    )
+    operation_idx: int = 1
 
     # ------------------------------- Substitution ------------------------------- #
-
-    if args.sub:
-        pdb = pdb_substitution(args.sub, pdb)
+    if cl_args.sub_input:
+        print("Performing Substitution...", file=sys.stderr)
+        pdb_substitution(pdb, cl_args.sub_input)
         print(
             f"Substitution Complete! Operation ({operation_idx} of {operation_count}) ",
             file=sys.stderr,
@@ -56,30 +49,46 @@ def main(argv: list = sys.argv[1:]) -> None:
         operation_idx += 1
 
     # --------------------------------- Addition --------------------------------- #
-
-    if args.add:
-        pdb = pdb_addition(args.add, pdb, args.output_path)
+    if cl_args.add_input:
+        print("Performing Addition...", file=sys.stderr)
+        pdb_addition(
+            pdb,
+            Path(cl_args.pdb_input),
+            cl_args.add_input,
+            cl_args.output_path,
+            cl_args.nucleic_structure,
+        )
         print(
             f"Sequence Addition Complete! Operation ({operation_idx} of {operation_count}) ",
             file=sys.stderr,
         )
+        operation_idx += 1
+
+    # ------------------------------- Protein Walk ------------------------------- #
+    if cl_args.walk_input:
+        print("Performing Protein Walk...", file=sys.stderr)
+        print(
+            f"Protein Walk Complete! Operation ({operation_idx} of {operation_count}) ",
+            file=sys.stderr,
+        )
+        operation_idx += 1
 
     # ------------------------------- Output Result ------------------------------ #
 
     if operation_count != 0:
-        output_path = Path(args.output_path)
-        output_dir = output_path.parent if output_path.is_file() else output_path
+        output_path = cl_args.output_path
+        output_file = cl_args.output_file
         print(
-            f'Outputting new pdb to path: "{output_dir}"',
+            f'Outputting new pdb to path: "{output_path}"',
             file=sys.stderr,
         )
-        output_dir.mkdir(parents=True, exist_ok=True)
-        pdb.to_pdb(
-            path=str(output_dir.absolute() / "output.pdb"), records=None, gz=False
-        )
+        output_path.mkdir(parents=True, exist_ok=True)
+        output: PandasPdb = pdb.output_pdb(input)
+        output.to_pdb(path=(output_path / output_file), records=None, gz=False)
+        print("Done!", file=sys.stderr)
     else:
         print("No operations performed. Closing...", file=sys.stderr)
 
 
 if __name__ == "__main__":
-    main()
+    entry()

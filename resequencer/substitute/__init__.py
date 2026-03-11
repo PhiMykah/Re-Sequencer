@@ -1,4 +1,3 @@
-from .substitute import load_substitution_file, Substitution
-from .run import pdb_substitution
+from .sub import Substitution, load_substitution_file, pdb_substitution
 
-__all__ = ["load_substitution_file", "Substitution", "pdb_substitution"]
+__all__: list[str] = ["Substitution", "load_substitution_file", "pdb_substitution"]
