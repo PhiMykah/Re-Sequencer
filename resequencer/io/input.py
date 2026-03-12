@@ -1,5 +1,5 @@
+import logging
 from pathlib import Path
-from sys import stderr
 
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -10,12 +10,12 @@ def get_input_pdb(target_pdb: Path | str) -> PandasPdb:
     """
     Create a PandasPdb Object based on given path or PDB code from Protein Databank.
 
-     Assumes PDB codes are 4-characters in length.
+    Assumes PDB codes are 4-characters in length.
 
     Parameters
     ----------
     target_pdb : Path | str
-        Input pdb as file path or 4-char code
+        Input pdb as file path or 4-char code.
 
     Returns
     -------
@@ -25,11 +25,11 @@ def get_input_pdb(target_pdb: Path | str) -> PandasPdb:
     Raises
     ------
     FileExistsError
-        Occurs when attempting to convert input file into pdb suffix
+        Occurs when attempting to convert input file into pdb suffix.
     FileNotFoundError
-        Occurs when input path does not exist
+        Occurs when input path does not exist.
     ValueError
-        Occurs when failing to fetch pdb code
+        Occurs when failing to fetch pdb code.
     """
     # Cast string to path if it does not fit code structure
     if isinstance(target_pdb, str) and len(target_pdb) != 4:
@@ -37,7 +37,7 @@ def get_input_pdb(target_pdb: Path | str) -> PandasPdb:
 
     # Test if pdb input is path or code
     if isinstance(target_pdb, Path):
-        print("Attempting to read input PDB...", file=stderr)
+        logging.info("Attempting to read input PDB...")
         if target_pdb.is_file():
             # Try to read file as a pdb file
             try:
@@ -52,7 +52,7 @@ def get_input_pdb(target_pdb: Path | str) -> PandasPdb:
         else:
             raise FileNotFoundError(f"Unable to find input PDB file: {target_pdb}")
     else:
-        print(f"Attempting to fetch pdb with code {target_pdb}", file=stderr)
+        logging.info(f"Attempting to fetch pdb with code {target_pdb}")
         try:
             input: PandasPdb = PandasPdb().fetch_pdb(target_pdb, source="pdb")
         except Exception:
@@ -61,7 +61,7 @@ def get_input_pdb(target_pdb: Path | str) -> PandasPdb:
                 f"Either pdb does not exist or could not reach website."
             )
 
-    print("Successfully loaded PDB file!", file=stderr)
+    logging.info("Successfully loaded PDB file!")
     return input
 
 
@@ -72,21 +72,21 @@ def get_input_fasta(target_fasta: Path) -> dict[str, SeqRecord]:
     Parameters
     ----------
     target_fasta : Path
-        Input fasta file
+        Input fasta file.
 
     Returns
     -------
     dict[str, SeqRecord]
-        Dictionary matching record name to each sequence
+        Dictionary matching record name to each sequence.
 
     Raises
     ------
     FileNotFoundError
-        Occurs when input path does not exist
+        Occurs when input path does not exist.
     ValueError
-        Occurs when failing to read fasta file
+        Occurs when failing to read fasta file.
     """
-    print("Attempting to read fasta file...", file=stderr)
+    logging.info("Attempting to read fasta file...")
     if target_fasta.is_file():
         try:
             input: dict[str, SeqRecord] = SeqIO.to_dict(
@@ -97,5 +97,5 @@ def get_input_fasta(target_fasta: Path) -> dict[str, SeqRecord]:
     else:
         raise FileNotFoundError(f"Unable to find input fasta file: {target_fasta}")
 
-    print("Successfully loaded fasta file!", file=stderr)
+    logging.info("Successfully loaded fasta file!")
     return input

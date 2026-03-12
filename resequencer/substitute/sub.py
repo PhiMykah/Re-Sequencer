@@ -1,6 +1,6 @@
+import logging
 from dataclasses import dataclass
 from pathlib import Path
-from sys import stderr
 
 from resequencer.pdb import PDB
 
@@ -39,7 +39,7 @@ def load_substitution_file(file: Path) -> dict[int, Substitution]:
 
     Parameters
     ----------
-        file (Path)
+        file : Path
             The path to the substitution file.
     Returns
     -------
@@ -73,15 +73,35 @@ def load_substitution_file(file: Path) -> dict[int, Substitution]:
 
 
 def pdb_substitution(pdb: PDB, sub_input: Path) -> None:
+    """
+    Perform amino acid substitutions on a PDB structure based on a substitution file.
+
+    Parameters
+    ----------
+    pdb : PDB
+        The PDB structure object to modify.
+    sub_input : Path
+        Path to the substitution file containing the substitution definitions.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the substitution file does not exist at the specified path.
+
+    Note
+    ----
+    The function logs each substitution operation at INFO level.
+
+    Substitutions are applied directly to the PDB object in-place.
+    """
 
     if not sub_input.is_file():
-        raise Exception(f"Substitution file '{sub_input}' does not exist!")
+        raise FileNotFoundError(f"Substitution file '{sub_input}' does not exist!")
 
     substitutions: dict[int, Substitution] = load_substitution_file(sub_input)
 
     for res_num, sub in substitutions.items():
-        print(
-            f"Chain {sub.chain}: Substituting {sub.base} with {sub.new_base} on residue {res_num}",
-            file=stderr,
+        logging.info(
+            f"Chain {sub.chain}: Substituting {sub.base} with {sub.new_base} on residue {res_num}"
         )
         pdb[sub.chain][res_num - 1].substitute(sub.base, sub.new_base)  # type: ignore

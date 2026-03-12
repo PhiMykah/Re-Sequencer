@@ -1,11 +1,13 @@
+import logging
 import sys
 import typing
 from pathlib import Path
 
 from pymol import cmd
 
-from .external import mini_helix_tail
 from resequencer.pdb import PDB, Chain
+
+from .external import MINI_HELIX_TAIL
 
 if typing.TYPE_CHECKING:
     from resequencer.addition import Addition
@@ -14,13 +16,45 @@ if typing.TYPE_CHECKING:
 def run_pymol(
     addition: "Addition",
     pdb: PDB,
-    mini_helix: str,
     helix_orientation: str,
     input_file: Path,
     output_path: Path,
     is_print_only: bool,
 ) -> list[tuple]:
+    """
+    Execute PyMOL commands to extract and align protein chain segments based on helix orientation.
+    This function extracts overlapping regions from two protein chains and performs structural
+    alignment using PyMOL. The extraction is based on the helix orientation (start or end),
+    and can either execute PyMOL commands directly or print them for inspection.
 
+    Parameters
+    ----------
+    addition : Addition
+        Addition object containing information about the chains to process.
+    pdb : PDB
+        PDB object representing the protein structure.
+    helix_orientation : str
+        Orientation of the helix ("start" or "end") determining which
+        residues are extracted for alignment.
+    input_file : Path
+        Path to the input PDB file to be processed.
+    output_path : Path
+        Directory path where output PDB files (new.pdb and aligned.pdb) are saved.
+    is_print_only: bool
+        If True, prints PyMOL commands without executing them.
+        If False, executes PyMOL commands and logs the output.
+
+    Returns
+    -------
+    list[tuple,tuple]
+        A list of two tuples containing the residue number ranges for target and other chains
+        in the format [(target_start, target_end), (other_start, other_end)].
+
+    Raises
+    ------
+    AssertionError
+        If target_chain or other_chain are not Chain instances.
+    """
     # Target_chain old and new
     # Chain class representation of target
     target_chain = pdb[addition.chains[0]]
@@ -32,8 +66,8 @@ def run_pymol(
     assert isinstance(target_chain, Chain)
     assert isinstance(other_chain, Chain)
 
-    target_tail: int = mini_helix_tail()
-    other_tail: int = mini_helix_tail()
+    target_tail: int = MINI_HELIX_TAIL
+    other_tail: int = MINI_HELIX_TAIL
 
     # Collect the overlap from the helix
     if helix_orientation.lower() == "start":
@@ -114,6 +148,6 @@ def run_pymol(
             ]
         )
         print_output.append(f"'{';'.join(command)}'")
-        print("Ran pymol commands:", " ".join(print_output), file=sys.stderr)
+        logging.info("Ran pymol commands: " + " ".join(print_output))
 
     return ranges

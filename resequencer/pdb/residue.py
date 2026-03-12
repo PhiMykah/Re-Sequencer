@@ -13,20 +13,20 @@ from .base import (
 
 class Residue:
     """
-    Class representation of Residue in PDB and PandasPDB
+    Class representation of Residue in PDB and PandasPDB.
 
     Attributes
     ----------
     records : list[AtomRecord]
-        List of Atoms in Residue
+        List of Atoms in Residue.
     starting_idx : int
-        Starting index of first atom in residue
+        Starting index of first atom in residue.
     residue_name : str
-        Name of given residue
+        Name of given residue.
     residue_number : int
-        Current index of residue based on chain
+        Current index of residue based on chain.
     chain_id : str
-        Chain that residue is contained within
+        Chain that residue is contained within.
     """
 
     # ---------------------------------------------------------------------------- #
@@ -141,7 +141,7 @@ class Residue:
 
     def append(self, pdb_record: AtomRecord) -> None:
         """
-        Append a new atom record to the residue and re-index
+        Append a new atom record to the residue and re-index.
 
         Parameters
         ----------
@@ -166,14 +166,14 @@ class Residue:
 
     def insert(self, pdb_record: AtomRecord, idx: int) -> None:
         """
-        Insert a new atom record to the residue at the target index and re-index
+        Insert a new atom record to the residue at the target index and re-index.
 
         Parameters
         ----------
         pdb_record : AtomRecord
             The atom record to append to this residue.
         idx : int
-            Position to add new atom record
+            Position to add new atom record.
         """
 
         if not self._records:
@@ -197,12 +197,12 @@ class Residue:
 
     def remove(self, idx: int) -> None:
         """
-        Remove an atom record from the residue and re-index
+        Remove an atom record from the residue and re-index.
 
         Parameters
         ----------
         idx : int
-            Position to remove atom record
+            Position to remove atom record.
         """
 
         if not self._records:
@@ -236,9 +236,9 @@ class Residue:
 
         Parameters
         ----------
-        old_base (str)
+        old_base : str
             Current base to resequence from.
-        new_base (str)
+        new_base : str
             New base for current Residue object.
         """
         # Remove the base atoms before conversion
@@ -253,6 +253,19 @@ class Residue:
     # ---------------------------------------------------------------------------- #
 
     def print(self) -> str:
+        """
+        Generate a string representation of atom names in the residue.
+
+        Returns
+        -------
+        str
+            A space-separated string of atom names from all records in the residue.
+
+            Example:
+            residue.print()
+            'DA DT DG DC'
+        """
+
         print_list = []
         for rec in self._records:
             print_list.append(rec.atom_name)
@@ -272,20 +285,20 @@ class Residue:
         chain_id: str,
     ) -> None:
         """
-        Set atom record list for Residue and ensure proper indexing for line_idx
+        Set atom record list for Residue and ensure proper indexing for line_idx.
 
         Parameters
         ----------
         pdb_records : list[AtomRecord]
-            List of Atoms in Residue
+            List of Atoms in Residue.
         starting_idx : int
-            Starting index of first atom in residue
+            Starting index of first atom in residue.
         residue_name : str
-            Name of given residue
+            Name of given residue.
         residue_number : int
-            Current index of residue based on chain
+            Current index of residue based on chain.
         chain_id : str
-            Chain that residue is contained within
+            Chain that residue is contained within.
         """
         if not pdb_records:
             return
@@ -395,27 +408,27 @@ class Residue:
 
     def __len__(self) -> int:
         """
-        Get length of residue based on number of atom records
+        Get length of residue based on number of atom records.
 
         Returns
         -------
         int
-            Number of atom records
+            Number of atom records.
         """
         return len(self._records)
 
     def __getitem__(self, indices) -> AtomRecord | list[AtomRecord]:
         """
-        Residue indexer
+        Residue indexer.
 
         Parameters
         ----------
         indices : int | slice
-            Index or indices of records
+            Index or indices of records.
 
         Returns
         -------
         AtomRecord | list[AtomRecord]
-            Current record(s) at provided index/indices
+            Current record(s) at provided index/indices.
         """
         return self._records[indices]

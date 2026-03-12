@@ -1,6 +1,6 @@
 from Bio.SeqRecord import SeqRecord
-from pandas import DataFrame, Series, to_numeric
 from biopandas.pdb.pandas_pdb import PandasPdb
+from pandas import DataFrame, Series, to_numeric
 
 from .atom_record import AtomRecord
 from .chain import Chain
@@ -9,14 +9,14 @@ from .residue import Residue
 
 class PDB:
     """
-    Class representation of PDB from PandasPDB
+    Class representation of PDB from PandasPDB.
 
     Attributes
     ----------
     chains : list[Chain]
-        List of Chains in PDB
+        List of Chains in PDB.
     fasta : dict[str, SeqRecord]
-        Fasta dictionary representation of PDB
+        Fasta dictionary representation of PDB.
     """
 
     # ---------------------------------------------------------------------------- #
@@ -70,6 +70,25 @@ class PDB:
     # ---------------------------------------------------------------------------- #
 
     def output_pdb(self, input: PandasPdb) -> PandasPdb:
+        """
+        Convert internal chain data to a PandasPdb object.
+        Takes the processed chains stored in this object and constructs a new
+        PandasPdb instance with the chains data, preserving metadata from the
+        input PandasPdb object.
+
+        Parameters
+        ----------
+        input : PandasPdb
+            Source PandasPdb object containing original metadata
+            (header, code, pdb_text, pdb_path).
+
+        Returns
+        -------
+        PandasPdb
+            A new PandasPdb object with the processed chains data and
+            original metadata from the input object.
+        """
+
         output = PandasPdb()
         output._df = self._chains_to_full_dataframe()
         output.pdb_text = input.pdb_text
@@ -85,12 +104,12 @@ class PDB:
 
     def total_length(self) -> int:
         """
-        Collect the lengh of the chain based on the length of each residue
+        Collect the lengh of the chain based on the length of each residue.
 
         Returns
         -------
         int
-            Total length of chain by residue length
+            Total length of chain by residue length.
         """
         return sum(chain.total_length() for chain in self.chains)
 
@@ -152,7 +171,7 @@ class PDB:
         Parameters
         ----------
         starting_idx : int
-            The starting atom number for reindexing
+            The starting atom number for reindexing.
         """
         atom_num: int = starting_idx
         for chain in self.chains:
@@ -167,6 +186,19 @@ class PDB:
 
     @staticmethod
     def _to_chains(df: DataFrame) -> list[Chain] | None:
+        """
+        Simple static method to convert dataframe to chain object list.
+
+        Parameters
+        ----------
+        df : DataFrame
+            Target Dataframe to access chains.
+
+        Returns
+        -------
+        list[Chain] | None
+            Returns a list of chains if the dataframe is not empty, otherwise None.
+        """
         if not df.empty:
             return PDB.dataframe_to_chains(df)
         else:
@@ -177,6 +209,24 @@ class PDB:
     # ---------------------------------------------------------------------------- #
 
     def get_chain_idx(self, chain_id: str) -> int:
+        """
+        Collect Chain index for chain if it exists in pdb.
+
+        Parameters
+        ----------
+        chain_id : str
+            Target chain ID to look for in PDB.
+
+        Returns
+        -------
+        int
+            index of target chain ID.
+
+        Raises
+        ------
+        ValueError
+            If the chain ID is not found in the pdb.
+        """
         idx: int | None = self._chain_mapping.get(chain_id.lower(), None)
         if idx is None:
             raise ValueError(f"Chain with id {chain_id} does not exist in PDB!")
@@ -216,7 +266,7 @@ class PDB:
         -------
         list[Chain]
             A list of Chain objects, each containing organized residues
-                and their associated atomic records in hierarchical order.
+            and their associated atomic records in hierarchical order.
         """
 
         chains: list[Chain] = []
@@ -283,7 +333,7 @@ class PDB:
         chains : list[Chain]
             A list of Chain objects containing residues and their atomic records.
         starting_idx : int
-            starting index of chain list, zero if unchanged, by default 0
+            starting index of chain list, zero if unchanged, by default 0.
 
         Returns
         -------
@@ -466,17 +516,17 @@ class PDB:
 
     def __getitem__(self, indices) -> Chain | list[Chain]:
         """
-        Chain indexer
+        Chain indexer.
 
         Parameters
         ----------
         indices : int | slice
-            Index or indices of chain
+            Index or indices of chain.
 
         Returns
         -------
         Residue | list[Residue]
-            Current residue(s) at provided index/indices
+            Current residue(s) at provided index/indices.
         """
         if isinstance(indices, str):
             return self._chains[self.get_chain_idx(indices)]
@@ -484,19 +534,19 @@ class PDB:
 
     def __setitem__(self, index: int | str, value: Chain) -> None:
         """
-        Chain setter
+        Chain setter.
 
         Parameters
         ----------
         index : int | str
-            Index or chain id of chain
+            Index or chain id of chain.
         value : Chain
-            Chain object to set
+            Chain object to set.
 
         Raises
         ------
         ValueError
-            If chain id does not exist when using string index
+            If chain id does not exist when using string index.
         """
         if isinstance(index, str):
             idx = self.get_chain_idx(index)
@@ -506,11 +556,11 @@ class PDB:
 
     def __len__(self) -> int:
         """
-        Get length of pdb based on number of chains
+        Get length of pdb based on number of chains.
 
         Returns
         -------
         int
-            Number of Chains
+            Number of Chains.
         """
         return len(self._chains)

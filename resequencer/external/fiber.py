@@ -1,3 +1,4 @@
+import logging
 import sys
 import typing
 from pathlib import Path
@@ -5,15 +6,49 @@ from pathlib import Path
 from resequencer.external.x3dna.fiber_bindings import run_fiber
 from resequencer.pdb import PDB
 
-from .external import mini_helix_tail
+from .external import MINI_HELIX_TAIL
 
 if typing.TYPE_CHECKING:
     from resequencer.addition import Addition
 
 
 def run_x3dna(addition: "Addition", pdb: PDB, output_path: Path):
+    """
+    Generate a mini-helix structure using x3DNA's fiber command based on sequence changes.
+    This function analyzes the differences between old and new DNA/RNA sequences,
+    extracts a relevant portion to create a mini-helix, and uses the fiber tool to
+    generate a 3D structure. If the sequences match completely in the overlap region,
+    the mini-helix is extracted from the tail; otherwise, it's extracted from the start.
+
+    Parameters
+    ----------
+    addition : Addition
+        An Addition object containing old and new sequences for both
+        target and other chains, as well as the original geometry.
+    pdb : PDB
+        A PDB object used to determine if the target chain is DNA or RNA.
+    output_path : Path
+        The directory path where the generated PDB file will be saved.
+
+    Returns
+    -------
+    tuple
+        A tuple containing:
+        - mini_helix (str): The sequence string used to generate the fiber structure.
+        - helix_orientation (str): Either "start" or "end" indicating where the differences
+                                    in the sequence begin relative to the mini-helix.
+        - is_print_only (bool): True if fiber command failed and was only printed (e.g., on Windows),
+                                False if the command executed successfully.
+
+    Raises
+    ------
+    ValueError
+        If the new target chain is smaller than or equal to the original target chain,
+        or if the new other chain is smaller than or equal to the original other chain.
+    """
+
     # Identify the base count for the original portion of the tail
-    base_count: int = mini_helix_tail()
+    base_count: int = MINI_HELIX_TAIL
 
     # Target_chain old and new
     target_chain: list[str] = addition.old_seq[0]
@@ -67,11 +102,11 @@ def run_x3dna(addition: "Addition", pdb: PDB, output_path: Path):
     try:
         print("Running fiber...", file=sys.stderr)
         run_fiber(fiber_cmd)
-        print(f"Ran fiber command: {' '.join(fiber_cmd)}", file=sys.stderr)
+        logging.info(f"Ran fiber command: {' '.join(fiber_cmd)}")
         is_print_only = False
     except Exception as e:
         is_print_only = True
-        print(f"Error running fiber: {e}", file=sys.stderr)
+        logging.error(f"Error running fiber: {e}")
 
     if is_print_only:
         # On Windows or error just print the commands

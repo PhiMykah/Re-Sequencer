@@ -1,3 +1,4 @@
+import logging
 import sys
 from pathlib import Path
 
@@ -12,17 +13,22 @@ from resequencer.substitute import pdb_substitution
 
 
 def entry(argv: list[str] = sys.argv[1:]) -> None:
-    """entry-point function for command-line and script
+    """entry-point function for command-line and script.
 
     Parameters
     ----------
     argv : list[str], optional
-        Arguments to pass to Re-Sequencer, by default sys.argv[1:]
+        Arguments to pass to Re-Sequencer, by default sys.argv[1:].
     """
 
     # --------------------------------- Load PDB --------------------------------- #
     # Parse command-line arguments
     cl_args = parse_args(argv)  # Re-Sequencer command-line arguments
+
+    # Set logs level and output to stderr
+    logging.basicConfig(
+        level=cl_args.verbose_flag, stream=sys.stderr, format="%(message)s"
+    )
 
     input: PandasPdb = get_input_pdb(cl_args.pdb_input)
     fasta: dict[str, SeqRecord] = get_input_fasta(cl_args.fasta_input)

@@ -1,2 +1,1 @@
-def mini_helix_tail() -> int:
-    return 2
+MINI_HELIX_TAIL = 2  # Number of residues from original chain to add to mini_helix

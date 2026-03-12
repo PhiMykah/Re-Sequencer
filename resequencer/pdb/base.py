@@ -58,7 +58,7 @@ def _base_to_int(base: "NucleotideBase | str | int") -> int:
 
     Parameters
     ----------
-        base (NucleotideBase | str | int)
+        base : NucleotideBase | str | int
         The nucleotide base to convert. This can be:
 
             - An instance of the NucleotideBase enum,

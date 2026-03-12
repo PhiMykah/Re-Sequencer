@@ -1,8 +1,8 @@
+import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from sys import stderr
 
 from resequencer.external import run_pymol, run_x3dna
 from resequencer.pdb.pdb import PDB
@@ -27,15 +27,15 @@ class Addition:
     Attributes
     ----------
     chains: tuple[str, ...]
-        The chain type of each nucleic acid strand, expects 2
+        The chain type of each nucleic acid strand, expects 2.
     old_seq: tuple[list[str], ...]
-        Current sequences for both chains
+        Current sequences for both chains.
     new_seq: tuple[list[str], ...]
-        New sequences for both chains
+        New sequences for both chains.
     original_geometry: str
-        Type of nucleic acid geometry to add
+        Type of nucleic acid geometry to add.
     target_chain: str
-        Name of target strain
+        Name of target strain.
     """
 
     chains: tuple[str, ...]
@@ -129,10 +129,36 @@ class Addition:
 def pdb_addition(
     pdb: PDB, input_path: Path, add_input: Path, output_path: Path, form: str
 ):
+    """
+    Perform PDB addition operations by aligning and appending modification sequences.
+    This function processes a list of additions from an input file, performs structural
+    alignment using x3DNA and PyMOL, and appends the aligned structures to the original
+    PDB file. For each addition, it generates a mini helix structure, determines helix
+    orientation, performs alignment based on specified ranges, and integrates the result
+    into the original PDB with reindexed atom numbering.
+
+    Parameters
+    ----------
+    pdb : PDB
+        The original PDB structure object to which additions will be appended.
+    input_path : Path
+        Path to the input PDB file.
+    add_input : Path
+        Path to the addition input file containing modification specifications.
+    output_path : Path
+        Directory Path where output files will be written.
+    form : str
+        Type of nucleic acid geometry to add
+
+    Raises
+    ------
+    FileNotFoundError
+        If the addition input file at add_input does not exist.
+    """
     from .append import append_addition
 
     if not add_input.is_file():
-        raise Exception(f"Addition file '{add_input}' does not exist!")
+        raise FileNotFoundError(f"Addition file '{add_input}' does not exist!")
 
     additions: list[Addition] = Addition.load_addition_file(add_input, form)
 
@@ -145,7 +171,7 @@ def pdb_addition(
     # ------------------------- Iterate through Additions ------------------------ #
 
     for idx, addition in enumerate(additions):
-        print(f"Performing Addition ({idx + 1} of {len(additions)})", file=stderr)
+        logging.info(f"Performing Addition ({idx + 1} of {len(additions)})")
 
         # ---------------------------------------------------------------------------- #
         #                               x3DNA Mini Helix                               #
@@ -162,13 +188,13 @@ def pdb_addition(
         aligned_ranges = run_pymol(
             addition,
             pdb,
-            mini_helix,
             helix_orientation,
             input_path,
             output_dir,
             is_print_only,
         )
 
-        print("Adding Aligned PDB to original PDB...", file=stderr)
+        logging.info("Adding Aligned PDB to original PDB...")
         append_addition(pdb, addition, aligned_ranges, output_dir, helix_orientation)
+        # Reorder all atom numbers for updated pdb
         pdb.reindex_atom_num(1)

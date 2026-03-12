@@ -1,4 +1,5 @@
 import argparse
+import logging
 from pathlib import Path
 
 
@@ -7,11 +8,21 @@ def build_parser() -> argparse.ArgumentParser:
     Creates and configures an ArgumentParser for the Re-Sequencer command line interface.
     An ArgumentParser object configured with the following arguments:
 
-     -help: Shows the help message and exits.
+     --help: Shows the help message and exits.
+     --input: Path to PDB file or PDB ID.
+     --fasta: Path to the fasta file.
+     --form: Desired Structure of DNA/RNA, eg. b-form, a-form, z-form.
+     --sub: Input file for substitution.
+     --add: Path to chain addition input file.
+     --walk: Path to protein walk input file.
+     --output: Output Path for Finished PDB and Intermediate Steps.
+     --file: File name for final output.
+     --verbose: Verbose output printing.
+     
     Returns
     -------
     argparse.ArgumentParser
-        ArgumentParser object to containing incoming arguments
+        ArgumentParser object to containing incoming arguments.
     """
     parser = argparse.ArgumentParser(
         prog="Re-Sequencer", description="Re-Sequencer Command Line Arguments"
@@ -32,7 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="'File or PDB ID'",
         required=True,
         dest="pdb_input",
-        help="Path to PDB file or PDB ID",
+        help="Path to PDB file or PDB ID.",
     )
     # Fasta File
     parser.add_argument(
@@ -52,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         choices=["a", "b", "z"],
         dest="nucleic_structure",
-        help="Desired Structure of DNA/RNA, eg. b-form, a-form, z-form;",
+        help="Desired Structure of DNA/RNA, eg. b-form, a-form, z-form.",
         default="",
     )
     # Substitution File (.in)
@@ -62,7 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         metavar="'substitute.in'",
         dest="sub_input",
-        help="Input file for substitution",
+        help="Input file for substitution.",
         default="",
     )
     # Chain Addition (.chain)
@@ -85,16 +96,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to protein walk input file.",
         default="",
     )
-    # Output File (.pdb)
+    # Output Path
     parser.add_argument(
         "--output",
         "-output",
         type=Path,
         metavar="'Path'",
         dest="output_path",
-        help="Output Path for Finished PDB and Intermediate Steps",
+        help="Output Path for Finished PDB and Intermediate Steps.",
         default=Path("output"),
     )
+    # Output File (.pdb)
     parser.add_argument(
         "--file",
         "-file",
@@ -103,6 +115,15 @@ def build_parser() -> argparse.ArgumentParser:
         dest="output_file",
         help="File name for final output.",
         default="output.pdb",
+    )
+    # Verbose Flag
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_const",
+        dest="verbose_flag",
+        help="Verbose output printing.",
+        const=logging.INFO,
     )
     return parser
 
@@ -113,23 +134,25 @@ class CLargs(argparse.Namespace):
 
     Attributes
     ----------
-    pdb_input (Path | str)
+    pdb_input : Path | str
         Path to the PDB file.
-    fasta_input (Path)
+    fasta_input : Path
         Path to the fasta file.
-    nucleic_structure (str)
+    nucleic_structure: str
         Desired Structure of DNA/RNA, eg. b-form, a-form, z-form;
-        Empty string if not adding
-    sub_input (Path | None)
+        Empty string if not adding.
+    sub_input : Path | None
         Path to substitution input file.
-    add_input (Path | None)
+    add_input : Path | None
         Path to chain addition input file.
-    walk_input (Path | None)
+    walk_input : Path | None
         Path to protein walk input file.
-    output_path (Path)
+    output_path : Path
         Output directory path.
-    output_file (str)
+    output_file : str
         File name for final output.
+    verbose_flag : bool
+        Whether or not to print verbose data.
     """
 
     def __init__(
@@ -142,6 +165,7 @@ class CLargs(argparse.Namespace):
         walk_input: str,
         output_path: Path,
         output_file: str,
+        verbose_flag: bool,
     ) -> None:
         self.pdb_input: Path | str = (
             Path(pdb_input) if pdb_input.endswith("pdb") else pdb_input
@@ -153,20 +177,21 @@ class CLargs(argparse.Namespace):
         self.walk_input: Path | None = Path(walk_input) if walk_input != "" else None
         self.output_path: Path = output_path
         self.output_file: str = output_file
+        self.verbose_flag: bool = verbose_flag
 
 
 def parse_args(argv: list[str]) -> CLargs:
-    """Parse arguments from provided list and return CLargs object
+    """Parse arguments from provided list and return CLargs object.
 
     Parameters
     ----------
     argv : list[str]
-        List of command-line arguments
+        List of command-line arguments.
 
     Returns
     -------
     CLargs
-        Namespace Object with Resequencer attributes
+        Namespace Object with Resequencer attributes.
     """
     parser: argparse.ArgumentParser = build_parser()
     args: argparse.Namespace = parser.parse_args(argv)
@@ -193,6 +218,7 @@ def parse_args(argv: list[str]) -> CLargs:
         args.walk_input,
         args.output_path,
         args.output_file,
+        args.verbose_flag,
     )
 
 
