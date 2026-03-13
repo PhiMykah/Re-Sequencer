@@ -61,10 +61,10 @@ def append_addition(
         )
 
     # Remove mini_helix additions from aligned pdb
-    for idx, aligned_range in enumerate(aligned_ranges):
-        chain: Chain = aligned[aligned.get_chain_idx(addition.chains[idx])]  # type: ignore
-        chain.remove(aligned_range[0], False)
-        chain.remove(aligned_range[1], False)
+    # for idx, aligned_range in enumerate(aligned_ranges):
+    #     chain: Chain = aligned[aligned.get_chain_idx(addition.chains[idx])]  # type: ignore
+    #     chain.remove(aligned_range[0], False)
+    #     chain.remove(aligned_range[1], False)
 
     # collect target chain and its aligned addition
     target_pdb_chain: Chain = pdb[pdb.get_chain_idx(addition.chains[TARGET])]  # type: ignore

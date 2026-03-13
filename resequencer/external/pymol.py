@@ -112,6 +112,10 @@ def run_pymol(
         cmd.delete(original_obj)
         # super new.pdb, temp
         cmd.super("new", "temp")
+        # deselect
+        cmd.deselect()
+        # delete temp
+        cmd.delete("temp")
         # multisave /PATH/TO/aligned.pdb
         cmd.multisave(str(aligned_path))
     else:
@@ -121,10 +125,12 @@ def run_pymol(
         command = []
         command.extend(
             [
-                f"extract temp, {extraction}",
-                f"load {str(new_path)}",
+                f"select selection, {extraction}",
+                "create temp, selection",
                 f"delete {original_obj}",
                 f"{'super temp, new' if helix_orientation.lower() == 'start' else 'super new, temp'}",
+                "deselect",
+                "delete temp",
                 f"multisave {str(aligned_path)}",
             ]
         )
@@ -139,10 +145,13 @@ def run_pymol(
         command = []
         command.extend(
             [
-                f"extract temp, {extraction}",
+                f"select selection, {extraction}",
+                "create temp, selection",
                 f"load {str(new_path)}",
                 f"delete {original_obj}",
                 f"{'super temp, new' if helix_orientation.lower() == 'start' else 'super new, temp'}",
+                "deselect",
+                "delete temp",
                 f"multisave {str(aligned_path)}",
             ]
         )
