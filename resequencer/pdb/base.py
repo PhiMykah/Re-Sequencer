@@ -11,11 +11,11 @@ class NucleotideBase(Enum):
     C = 2
     U = 3
     T = 4
-    adenine = A
-    guanine = G
-    cytosine = C
-    uracil = U
-    thymine = 4
+    ADENINE = A
+    GUANINE = G
+    CYTOSINE = C
+    URACIL = U
+    THYMINE = 4
     DA = A
     DG = G
     DC = C

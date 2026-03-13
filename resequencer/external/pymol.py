@@ -102,17 +102,16 @@ def run_pymol(
         # load /PATH/TO/input_file.pdb
         cmd.load(input_file)
         original_obj: str = cmd.get_names("objects")[0]
-        # extract temp, chain A and resi 11-12 or chain B and resi 13-14
-        cmd.extract("temp", extraction)
+        # select selection, (chain A and resi 11-12 or chain B and resi 13-14)
+        cmd.select("selection,", extraction)
+        # create temp, selection
+        cmd.create("temp", "selection")
         # load /PATH/TO/new.pdb
         cmd.load(str(new_path))
         # delete input_file
         cmd.delete(original_obj)
         # super new.pdb, temp
-        if helix_orientation.lower() == "start":
-            cmd.super("new", "temp")
-        else:
-            cmd.super("temp", "new")
+        cmd.super("new", "temp")
         # multisave /PATH/TO/aligned.pdb
         cmd.multisave(str(aligned_path))
     else:

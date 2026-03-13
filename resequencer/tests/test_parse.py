@@ -26,6 +26,7 @@ class TestParseArgsBasic:
         assert result.sub_input is None
         assert result.add_input is None
         assert result.walk_input is None
+        assert not result.verbose_flag
 
     def test_missing_input_argument(self):
         """Test that missing --input raises error"""
@@ -244,6 +245,7 @@ class TestCLargsClass:
             walk_input="",
             output_path=Path("output"),
             output_file="output.pdb",
+            verbose_flag=True,
         )
         assert clargs.pdb_input == "1ABC"
         assert clargs.nucleic_structure == "b"
@@ -262,6 +264,7 @@ class TestCLargsClass:
             walk_input="",
             output_path=Path("output"),
             output_file="output.pdb",
+            verbose_flag=True,
         )
         assert clargs.sub_input is None
         assert clargs.add_input is None
