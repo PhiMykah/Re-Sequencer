@@ -1,4 +1,5 @@
 import pytest
+
 from resequencer.pdb import base
 
 

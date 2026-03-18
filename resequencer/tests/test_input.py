@@ -4,7 +4,7 @@ import pytest
 from Bio.SeqRecord import SeqRecord
 from biopandas.pdb import PandasPdb
 
-from resequencer.io.input import get_input_fasta, get_input_pdb
+from resequencer.io import get_input_fasta, get_input_pdb
 
 # Assuming data folder exists in the same directory
 DATA_DIR = Path(__file__).parent / "test_data"

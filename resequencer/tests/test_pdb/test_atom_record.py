@@ -1,5 +1,6 @@
 import pytest
-from resequencer.pdb.atom_record import AtomRecord
+
+from resequencer.pdb import AtomRecord
 
 
 class TestAtomRecord:

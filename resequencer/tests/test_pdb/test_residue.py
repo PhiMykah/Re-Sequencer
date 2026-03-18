@@ -1,6 +1,6 @@
 import pytest
-from resequencer.pdb.residue import Residue
-from resequencer.pdb.atom_record import AtomRecord
+
+from resequencer.pdb import AtomRecord, Residue
 
 
 @pytest.fixture
