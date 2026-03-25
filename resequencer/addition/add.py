@@ -97,7 +97,7 @@ class Addition:
 
             if len(line.split()) != 3:
                 raise ValueError(
-                    f"Error reading Line #{idx}: Expected 3 values separated by whitespace, got {len(line.split())}"
+                    f"Error reading Line #{idx+1}: Expected 3 values separated by whitespace, got {len(line.split())}"
                 )
 
             chain, old_seq, new_seq = line.split(None, 2)
@@ -155,13 +155,16 @@ def pdb_addition(
     FileNotFoundError
         If the addition input file at add_input does not exist.
     """
-    from .append import append_addition
 
     if not add_input.is_file():
         raise FileNotFoundError(f"Addition file '{add_input}' does not exist!")
 
     additions: list[Addition] = Addition.load_addition_file(add_input, form)
 
+    _run_addition(pdb, additions, input_path, output_path)
+
+def _run_addition(pdb: PDB, additions: list[Addition], input_path: Path, output_path: Path):
+    from .append import append_addition
     # ---------------------------- Create path objects --------------------------- #
 
     output_path = Path(output_path)

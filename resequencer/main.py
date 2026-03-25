@@ -10,6 +10,7 @@ from resequencer.io import get_input_fasta, get_input_pdb
 from resequencer.parse import parse_args
 from resequencer.pdb import PDB
 from resequencer.substitute import pdb_substitution
+from resequencer.walk import run_protein_walk
 
 
 def entry(argv: list[str] = sys.argv[1:]) -> None:
@@ -73,6 +74,13 @@ def entry(argv: list[str] = sys.argv[1:]) -> None:
     # ------------------------------- Protein Walk ------------------------------- #
     if cl_args.walk_input:
         print("Performing Protein Walk...", file=sys.stderr)
+        run_protein_walk(
+            pdb,
+            Path(cl_args.pdb_input),
+            Path(cl_args.walk_input),
+            cl_args.output_path,
+            cl_args.nucleic_structure,
+        )
         print(
             f"Protein Walk Complete! Operation ({operation_idx} of {operation_count}) ",
             file=sys.stderr,
