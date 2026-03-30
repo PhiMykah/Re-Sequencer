@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from resequencer.external import run_pymol, run_x3dna
+from resequencer.external import run_pymol, run_x3dna_fiber
 from resequencer.pdb.pdb import PDB
 
 # Precompiled regex for DNA/RNA bases
@@ -97,7 +97,7 @@ class Addition:
 
             if len(line.split()) != 3:
                 raise ValueError(
-                    f"Error reading Line #{idx+1}: Expected 3 values separated by whitespace, got {len(line.split())}"
+                    f"Error reading Line #{idx + 1}: Expected 3 values separated by whitespace, got {len(line.split())}"
                 )
 
             chain, old_seq, new_seq = line.split(None, 2)
@@ -163,7 +163,10 @@ def pdb_addition(
 
     _run_addition(pdb, additions, input_path, output_path)
 
-def _run_addition(pdb: PDB, additions: list[Addition], input_path: Path, output_path: Path):
+
+def _run_addition(
+    pdb: PDB, additions: list[Addition], input_path: Path, output_path: Path
+):
     from .append import append_addition
     # ---------------------------- Create path objects --------------------------- #
 
@@ -180,7 +183,7 @@ def _run_addition(pdb: PDB, additions: list[Addition], input_path: Path, output_
         #                               x3DNA Mini Helix                               #
         # ---------------------------------------------------------------------------- #
 
-        mini_helix, helix_orientation, is_print_only = run_x3dna(
+        mini_helix, helix_orientation, is_print_only = run_x3dna_fiber(
             addition, pdb, output_dir
         )
 

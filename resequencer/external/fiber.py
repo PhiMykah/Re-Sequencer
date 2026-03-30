@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
     from resequencer.addition import Addition
 
 
-def run_x3dna(addition: "Addition", pdb: PDB, output_path: Path):
+def run_x3dna_fiber(addition: "Addition", pdb: PDB, output_path: Path):
     """
     Generate a mini-helix structure using x3DNA's fiber command based on sequence changes.
     This function analyzes the differences between old and new DNA/RNA sequences,

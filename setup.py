@@ -33,12 +33,36 @@ fiber_ext = Extension(
     extra_compile_args=["-std=c99"],
 )
 
+find_pair_sources = [
+    str(x3dna_dir / "ana_fncs.c"),
+    str(x3dna_dir / "app_fncs.c"),
+    str(x3dna_dir / "cmn_fncs.c"),
+    str(x3dna_dir / "fncs_slre.c"),
+    str(x3dna_dir / "nrutil.c"),
+    str(x3dna_dir / "reb_fncs.c"),
+]
+# [str(p) for p in x3dna_dir.glob("*.c")]
+find_pair_sources.append(str(x3dna_dir / "find_pair_bindings.pyx"))
+
+find_pair_ext = Extension(
+    "resequencer.external.x3dna.find_pair_bindings",  # dotted module name
+    sources=find_pair_sources,
+    include_dirs=[str(x3dna_dir)],
+    define_macros=[
+        ("_CRT_SECURE_NO_WARNINGS", None),
+        ("X3DNA_DIR", f'"{str(x3dna_dir.as_posix())}"'),
+    ]
+    if sys.platform.startswith("win")
+    else [("X3DNA_DIR", f'"{str(x3dna_dir.as_posix())}"')],
+    extra_compile_args=["-std=c99"],
+)
+
 setup(
     name="resequencer",
     version="0.2.9",
     packages=find_packages(),
     install_requires=["biopandas", "biopython", "pandas", "pymol", "Cython"],
-    ext_modules=cythonize([fiber_ext]),
+    ext_modules=cythonize([fiber_ext, find_pair_ext]),
     entry_points={
         "console_scripts": [
             "resequencer = resequencer.main:entry",
