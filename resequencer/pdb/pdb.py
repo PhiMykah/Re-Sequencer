@@ -144,9 +144,9 @@ class PDB:
         target_key: str = ""
         for key, value in self.fasta.items():
             possible_strings = [
-                f"chains {chain_id}",
-                f"chain {chain_id}",
-                f", {chain_id}",
+                f"chains {chain_id.lower()}",
+                f"chain {chain_id.lower()}",
+                f", {chain_id.lower()}",
             ]
             if any(s in value.description.lower() for s in possible_strings):
                 target_key = key

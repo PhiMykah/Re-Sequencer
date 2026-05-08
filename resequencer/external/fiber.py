@@ -12,7 +12,9 @@ if typing.TYPE_CHECKING:
     from resequencer.addition import Addition
 
 
-def run_x3dna_fiber(addition: "Addition", pdb: PDB, output_path: Path):
+def run_x3dna_fiber(
+    addition: "Addition", pdb: PDB, output_path: Path, base_count: int = MINI_HELIX_TAIL
+):
     """
     Generate a mini-helix structure using x3DNA's fiber command based on sequence changes.
     This function analyzes the differences between old and new DNA/RNA sequences,
@@ -46,9 +48,6 @@ def run_x3dna_fiber(addition: "Addition", pdb: PDB, output_path: Path):
         If the new target chain is smaller than or equal to the original target chain,
         or if the new other chain is smaller than or equal to the original other chain.
     """
-
-    # Identify the base count for the original portion of the tail
-    base_count: int = MINI_HELIX_TAIL
 
     # Target_chain old and new
     target_chain: list[str] = addition.old_seq[0]

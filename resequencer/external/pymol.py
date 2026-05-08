@@ -103,19 +103,19 @@ def run_pymol(
         cmd.load(input_file)
         original_obj: str = cmd.get_names("objects")[0]
         # select selection, (chain A and resi 11-12 or chain B and resi 13-14)
-        cmd.select("selection,", extraction)
-        # create temp, selection
-        cmd.create("temp", "selection")
+        cmd.select("selection", extraction)
+        # # create temp, selection
+        # cmd.create("temp", "selection")
         # load /PATH/TO/new.pdb
         cmd.load(str(new_path))
-        # delete input_file
-        cmd.delete(original_obj)
-        # super new.pdb, temp
-        cmd.super("new", "temp")
+        # super new.pdb, selection
+        cmd.align("new", "selection")
         # deselect
         cmd.deselect()
+        # delete input_file
+        cmd.delete(original_obj)
         # delete temp
-        cmd.delete("temp")
+        # cmd.delete("temp")
         # multisave /PATH/TO/aligned.pdb
         cmd.multisave(str(aligned_path))
     else:
@@ -126,11 +126,11 @@ def run_pymol(
         command.extend(
             [
                 f"select selection, {extraction}",
-                "create temp, selection",
-                f"delete {original_obj}",
-                f"{'super temp, new' if helix_orientation.lower() == 'start' else 'super new, temp'}",
+                # "create temp, selection",
+                "align new, selection",
                 "deselect",
-                "delete temp",
+                f"delete {original_obj}",
+                # "delete temp",
                 f"multisave {str(aligned_path)}",
             ]
         )
@@ -146,12 +146,11 @@ def run_pymol(
         command.extend(
             [
                 f"select selection, {extraction}",
-                "create temp, selection",
-                f"load {str(new_path)}",
-                f"delete {original_obj}",
-                f"{'super temp, new' if helix_orientation.lower() == 'start' else 'super new, temp'}",
+                # "create temp, selection",
+                "align new, selection",
                 "deselect",
-                "delete temp",
+                f"delete {original_obj}",
+                # "delete temp",
                 f"multisave {str(aligned_path)}",
             ]
         )

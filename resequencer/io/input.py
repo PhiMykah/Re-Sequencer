@@ -65,13 +65,13 @@ def get_input_pdb(target_pdb: Path | str) -> PandasPdb:
     return input
 
 
-def get_input_fasta(target_fasta: Path) -> dict[str, SeqRecord]:
+def get_input_fasta(target_fasta: Path | str) -> dict[str, SeqRecord]:
     """
     Create a fasta SeqRecord dictionary based on given path.
 
     Parameters
     ----------
-    target_fasta : Path
+    target_fasta : Path | str
         Input fasta file.
 
     Returns
@@ -87,6 +87,8 @@ def get_input_fasta(target_fasta: Path) -> dict[str, SeqRecord]:
         Occurs when failing to read fasta file.
     """
     logging.info("Attempting to read fasta file...")
+    if isinstance(target_fasta, str):
+        target_fasta = Path(target_fasta)
     if target_fasta.is_file():
         try:
             input: dict[str, SeqRecord] = SeqIO.to_dict(

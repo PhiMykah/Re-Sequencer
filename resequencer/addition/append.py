@@ -94,10 +94,10 @@ def append_addition(
         # Remove the additional overlap from aligned chain
         if target_len < len(target_aligned_chain):
             for _ in range(target_len):
-                pdb[addition.chains[TARGET]].remove_at(0)  # type: ignore
+                aligned[addition.chains[TARGET]].remove_at(0)  # type: ignore
         if other_len < len(other_aligned_chain):
             for _ in range(other_len):
-                pdb[addition.chains[OTHER]].remove_at(-1)  # type: ignore
+                aligned[addition.chains[OTHER]].remove_at(-1)  # type: ignore
 
         # Add updated chains to original pdb
         pdb[addition.chains[TARGET]] = target_pdb_chain + target_aligned_chain
