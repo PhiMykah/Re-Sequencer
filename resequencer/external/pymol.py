@@ -20,6 +20,7 @@ def run_pymol(
     input_file: Path,
     output_path: Path,
     is_print_only: bool,
+    mini_helix_length: int = MINI_HELIX_TAIL
 ) -> list[tuple]:
     """
     Execute PyMOL commands to extract and align protein chain segments based on helix orientation.
@@ -66,8 +67,8 @@ def run_pymol(
     assert isinstance(target_chain, Chain)
     assert isinstance(other_chain, Chain)
 
-    target_tail: int = MINI_HELIX_TAIL
-    other_tail: int = MINI_HELIX_TAIL
+    target_tail: int = mini_helix_length
+    other_tail: int = mini_helix_length
 
     # Collect the overlap from the helix
     if helix_orientation.lower() == "start":

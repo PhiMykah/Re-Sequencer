@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from resequencer.external import run_pymol, run_x3dna_fiber
+from resequencer.external import run_pymol, run_x3dna_fiber, MINI_HELIX_TAIL
 from resequencer.pdb.pdb import PDB
 
 # Precompiled regex for DNA/RNA bases
@@ -165,7 +165,11 @@ def pdb_addition(
 
 
 def _run_addition(
-    pdb: PDB, additions: list[Addition], input_path: Path, output_path: Path
+    pdb: PDB,
+    additions: list[Addition],
+    input_path: Path,
+    output_path: Path,
+    mini_helix_length: int = MINI_HELIX_TAIL,
 ):
     from .append import append_addition
     # ---------------------------- Create path objects --------------------------- #
@@ -184,7 +188,7 @@ def _run_addition(
         # ---------------------------------------------------------------------------- #
 
         mini_helix, helix_orientation, is_print_only = run_x3dna_fiber(
-            addition, pdb, output_dir
+            addition, pdb, output_dir, mini_helix_length
         )
 
         # ---------------------------------------------------------------------------- #
@@ -198,6 +202,7 @@ def _run_addition(
             input_path,
             output_dir,
             is_print_only,
+            mini_helix_length,
         )
 
         logging.info("Adding Aligned PDB to original PDB...")

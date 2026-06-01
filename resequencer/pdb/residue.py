@@ -432,3 +432,33 @@ class Residue:
             Current record(s) at provided index/indices.
         """
         return self._records[indices]
+
+    def __iter__(self):
+        """Iterator for Residue.
+
+        Returns
+        -------
+        self
+        """
+        self.iteraton: int = 0
+        return self
+
+    def __next__(self) -> AtomRecord:
+        """Next iteration for Residue iterator.
+
+        Returns
+        -------
+        Residue
+            Next residue in iterator.
+
+        Raises
+        ------
+        StopIteration
+            When iteration has completed.
+        """
+        if self.iteraton < len(self._records):
+            res: AtomRecord = self._records[self.iteraton]
+            self.iteraton += 1
+            return res
+        else:
+            raise StopIteration

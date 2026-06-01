@@ -18,6 +18,7 @@ def append_addition(
     aligned_ranges: list[tuple],
     output_path: Path,
     helix_orientation: str,
+    mini_helix_length: int = MINI_HELIX_TAIL,
 ) -> None:
     """
     Append aligned chain segments to PDB chains based on helix orientation.
@@ -71,12 +72,12 @@ def append_addition(
     target_aligned_chain: Chain = aligned[
         aligned.get_chain_idx(addition.chains[TARGET])
     ]  # type: ignore
-    target_len: int = MINI_HELIX_TAIL
+    target_len: int = mini_helix_length
 
     # collect other chain and its aligned addition
     other_pdb_chain: Chain = pdb[pdb.get_chain_idx(addition.chains[OTHER])]  # type: ignore
     other_aligned_chain: Chain = aligned[aligned.get_chain_idx(addition.chains[OTHER])]  # type: ignore
-    other_len: int = MINI_HELIX_TAIL
+    other_len: int = mini_helix_length
 
     if helix_orientation.lower() == "start":
         # Remove the additional overlap from aligned chain
