@@ -206,6 +206,13 @@ def _run_addition(
         )
 
         logging.info("Adding Aligned PDB to original PDB...")
-        append_addition(pdb, addition, aligned_ranges, output_dir, helix_orientation)
+        append_addition(
+            pdb,
+            addition,
+            aligned_ranges,
+            output_dir,
+            helix_orientation,
+            mini_helix_length,
+        )
         # Reorder all atom numbers for updated pdb
         pdb.reindex_atom_num(1)

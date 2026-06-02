@@ -20,7 +20,7 @@ def run_pymol(
     input_file: Path,
     output_path: Path,
     is_print_only: bool,
-    mini_helix_length: int = MINI_HELIX_TAIL
+    mini_helix_length: int = MINI_HELIX_TAIL,
 ) -> list[tuple]:
     """
     Execute PyMOL commands to extract and align protein chain segments based on helix orientation.
@@ -119,6 +119,7 @@ def run_pymol(
         # cmd.delete("temp")
         # multisave /PATH/TO/aligned.pdb
         cmd.multisave(str(aligned_path))
+        cmd.delete("*")
     else:
         print_output = []
         original_obj = str(Path(input_file).stem)
