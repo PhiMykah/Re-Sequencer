@@ -21,6 +21,7 @@ def run_pymol(
     output_path: Path,
     is_print_only: bool,
     mini_helix_length: int = MINI_HELIX_TAIL,
+    alignment_type: str = "align",
 ) -> list[tuple]:
     """
     Execute PyMOL commands to extract and align protein chain segments based on helix orientation.
@@ -44,6 +45,10 @@ def run_pymol(
     is_print_only: bool
         If True, prints PyMOL commands without executing them.
         If False, executes PyMOL commands and logs the output.
+    mini_helix_length: int
+        Length to overlap mini-helix, by default MINI_HELIX_TAIL
+    alignment_type: str
+        Type of alignment to use to align new and selection, by default 'align'
 
     Returns
     -------
@@ -110,7 +115,14 @@ def run_pymol(
         # load /PATH/TO/new.pdb
         cmd.load(str(new_path))
         # super new.pdb, selection
-        cmd.align("new", "selection")
+        if alignment_type.lower() == "super":
+            cmd.super("new", "selection")
+        elif alignment_type.lower() == "cealign":
+            cmd.cealign("selection", "new")
+        elif alignment_type.lower() == "align":
+            cmd.align("new", "selection")
+        else:
+            cmd.align("new", "selection")
         # deselect
         cmd.deselect()
         # delete input_file
@@ -120,43 +132,33 @@ def run_pymol(
         # multisave /PATH/TO/aligned.pdb
         cmd.multisave(str(aligned_path))
         cmd.delete("*")
+
+    if alignment_type.lower() == "super":
+        alignment_method = "super new, selection"
+    elif alignment_type.lower() == "cealign":
+        alignment_method = "cealign selection, new"
+    elif alignment_type.lower() == "align":
+        alignment_method = "align new, selection"
     else:
-        print_output = []
-        original_obj = str(Path(input_file).stem)
-        print_output.extend(["pymol", str(input_file), "-c", "-d"])
-        command = []
-        command.extend(
-            [
-                f"select selection, {extraction}",
-                # "create temp, selection",
-                "align new, selection",
-                "deselect",
-                f"delete {original_obj}",
-                # "delete temp",
-                f"multisave {str(aligned_path)}",
-            ]
-        )
-        print_output.append(f"'{';'.join(command)}'")
+        alignment_method = "align new, selection"
+    print_output = []
+    original_obj = str(Path(input_file).stem)
+    print_output.extend(["pymol", str(input_file), "-c", "-d"])
+    command = []
+    command.extend(
+        [
+            f"select selection, {extraction}",
+            # "create temp, selection",
+            f"{alignment_method}",
+            "deselect",
+            f"delete {original_obj}",
+            # "delete temp",
+            f"multisave {str(aligned_path)}",
+        ]
+    )
+    print_output.append(f"'{';'.join(command)}'")
+    logging.info("Ran pymol commands: " + " ".join(print_output))
+    if is_print_only:
         print("--- pymol Commands ---", file=sys.stderr)
         print(" ".join(print_output), file=sys.stderr)
-
-    if not is_print_only:
-        print_output = []
-        original_obj = str(Path(input_file).stem)
-        print_output.extend(["pymol", str(input_file), "-c", "-d"])
-        command = []
-        command.extend(
-            [
-                f"select selection, {extraction}",
-                # "create temp, selection",
-                "align new, selection",
-                "deselect",
-                f"delete {original_obj}",
-                # "delete temp",
-                f"multisave {str(aligned_path)}",
-            ]
-        )
-        print_output.append(f"'{';'.join(command)}'")
-        logging.info("Ran pymol commands: " + " ".join(print_output))
-
     return ranges

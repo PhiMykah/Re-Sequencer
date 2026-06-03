@@ -170,6 +170,7 @@ def _run_addition(
     input_path: Path,
     output_path: Path,
     mini_helix_length: int = MINI_HELIX_TAIL,
+    alignment_type: str = "align",
 ):
     from .append import append_addition
     # ---------------------------- Create path objects --------------------------- #
@@ -203,6 +204,7 @@ def _run_addition(
             output_dir,
             is_print_only,
             mini_helix_length,
+            alignment_type,
         )
 
         logging.info("Adding Aligned PDB to original PDB...")
