@@ -118,7 +118,10 @@ def run_pymol(
         if alignment_type.lower() == "super":
             cmd.super("new", "selection")
         elif alignment_type.lower() == "cealign":
-            cmd.cealign("selection", "new")
+            if mini_helix_length < 6 or (target_end - target_start + 1) < 6:
+                cmd.align("new", "selection")
+            else:
+                cmd.cealign("selection", "new", window=3)
         elif alignment_type.lower() == "align":
             cmd.align("new", "selection")
         else:
