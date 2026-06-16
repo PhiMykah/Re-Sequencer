@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from resequencer.external import run_pymol, run_x3dna_fiber, MINI_HELIX_TAIL
+from resequencer.external import run_pymol, run_x3dna_fiber, OVERLAP_VALUE
 from resequencer.pdb.pdb import PDB
 
 # Precompiled regex for DNA/RNA bases
@@ -169,7 +169,7 @@ def _run_addition(
     additions: list[Addition],
     input_path: Path,
     output_path: Path,
-    mini_helix_length: int = MINI_HELIX_TAIL,
+    overlap_constant: int = OVERLAP_VALUE,
     alignment_type: str = "align",
 ):
     from .append import append_addition
@@ -189,7 +189,7 @@ def _run_addition(
         # ---------------------------------------------------------------------------- #
 
         mini_helix, helix_orientation, is_print_only = run_x3dna_fiber(
-            addition, pdb, output_dir, mini_helix_length
+            addition, pdb, output_dir, overlap_constant
         )
 
         # ---------------------------------------------------------------------------- #
@@ -203,7 +203,7 @@ def _run_addition(
             input_path,
             output_dir,
             is_print_only,
-            mini_helix_length,
+            overlap_constant,
             alignment_type,
         )
 
@@ -214,7 +214,7 @@ def _run_addition(
             aligned_ranges,
             output_dir,
             helix_orientation,
-            mini_helix_length,
+            overlap_constant,
         )
         # Reorder all atom numbers for updated pdb
         pdb.reindex_atom_num(1)

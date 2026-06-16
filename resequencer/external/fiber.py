@@ -6,14 +6,14 @@ from pathlib import Path
 from resequencer.external.x3dna.fiber_bindings import run_fiber
 from resequencer.pdb import PDB
 
-from .external import MINI_HELIX_TAIL
+from .external import OVERLAP_VALUE
 
 if typing.TYPE_CHECKING:
     from resequencer.addition import Addition
 
 
 def run_x3dna_fiber(
-    addition: "Addition", pdb: PDB, output_path: Path, base_count: int = MINI_HELIX_TAIL
+    addition: "Addition", pdb: PDB, output_path: Path, base_count: int = OVERLAP_VALUE
 ):
     """
     Generate a mini-helix structure using x3DNA's fiber command based on sequence changes.
@@ -94,7 +94,7 @@ def run_x3dna_fiber(
     if is_rna:
         fiber_cmd.append(is_rna)
     fiber_cmd.append(f"-seq={mini_helix}")
-    new_path: Path = output_path / "new.pdb"
+    new_path: Path = output_path / "minihelix_unaligned.pdb"
 
     fiber_cmd.append(f"{str(new_path)}")
 

@@ -462,3 +462,13 @@ class Residue:
             return res
         else:
             raise StopIteration
+
+    def __str__(self) -> str:
+        """String representation of the residue.
+
+        Returns
+        -------
+        str
+            Residue name.
+        """
+        return self.residue_name

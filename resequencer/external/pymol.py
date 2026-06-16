@@ -7,7 +7,7 @@ from pymol import cmd
 
 from resequencer.pdb import PDB, Chain
 
-from .external import MINI_HELIX_TAIL
+from .external import OVERLAP_VALUE
 
 if typing.TYPE_CHECKING:
     from resequencer.addition import Addition
@@ -20,7 +20,7 @@ def run_pymol(
     input_file: Path,
     output_path: Path,
     is_print_only: bool,
-    mini_helix_length: int = MINI_HELIX_TAIL,
+    overlap_constant: int = OVERLAP_VALUE,
     alignment_type: str = "align",
 ) -> list[tuple]:
     """
@@ -41,12 +41,12 @@ def run_pymol(
     input_file : Path
         Path to the input PDB file to be processed.
     output_path : Path
-        Directory path where output PDB files (new.pdb and aligned.pdb) are saved.
+        Directory path where output PDB files (minihelix_unaligned.pdb and minihelix.pdb) are saved.
     is_print_only: bool
         If True, prints PyMOL commands without executing them.
         If False, executes PyMOL commands and logs the output.
-    mini_helix_length: int
-        Length to overlap mini-helix, by default MINI_HELIX_TAIL
+    overlap_constant: int
+        Length to overlap mini-helix, by default OVERLAP_VALUE
     alignment_type: str
         Type of alignment to use to align new and selection, by default 'align'
 
@@ -72,8 +72,8 @@ def run_pymol(
     assert isinstance(target_chain, Chain)
     assert isinstance(other_chain, Chain)
 
-    target_tail: int = mini_helix_length
-    other_tail: int = mini_helix_length
+    target_tail: int = overlap_constant
+    other_tail: int = overlap_constant
 
     # Collect the overlap from the helix
     if helix_orientation.lower() == "start":
@@ -99,8 +99,8 @@ def run_pymol(
 
     extraction: str = " or ".join(extract_chain)
 
-    new_path: Path = output_path / "new.pdb"
-    aligned_path = output_path / "aligned.pdb"
+    new_path: Path = output_path / "minihelix_unaligned.pdb"
+    aligned_path = output_path / "minihelix.pdb"
 
     # --------------------------------- Run pymol -------------------------------- #
     if not is_print_only:
@@ -112,38 +112,38 @@ def run_pymol(
         cmd.select("selection", extraction)
         # # create temp, selection
         # cmd.create("temp", "selection")
-        # load /PATH/TO/new.pdb
+        # load /PATH/TO/minihelix_unaligned.pdb
         cmd.load(str(new_path))
-        # super new.pdb, selection
+        # super minihelix_unaligned.pdb, selection
         if alignment_type.lower() == "super":
-            cmd.super("new", "selection")
+            cmd.super("minihelix_unaligned", "selection")
         elif alignment_type.lower() == "cealign":
-            if mini_helix_length < 6 or (target_end - target_start + 1) < 6:
-                cmd.align("new", "selection")
+            if overlap_constant < 6 or (target_end - target_start + 1) < 6:
+                cmd.align("minihelix_unaligned", "selection")
             else:
-                cmd.cealign("selection", "new", window=3)
+                cmd.cealign("selection", "minihelix_unaligned", window=3)
         elif alignment_type.lower() == "align":
-            cmd.align("new", "selection")
+            cmd.align("minihelix_unaligned", "selection")
         else:
-            cmd.align("new", "selection")
+            cmd.align("minihelix_unaligned", "selection")
         # deselect
         cmd.deselect()
         # delete input_file
         cmd.delete(original_obj)
         # delete temp
         # cmd.delete("temp")
-        # multisave /PATH/TO/aligned.pdb
+        # multisave /PATH/TO/minihelix.pdb
         cmd.multisave(str(aligned_path))
         cmd.delete("*")
 
     if alignment_type.lower() == "super":
-        alignment_method = "super new, selection"
+        alignment_method = "super minihelix_unaligned, selection"
     elif alignment_type.lower() == "cealign":
-        alignment_method = "cealign selection, new"
+        alignment_method = "cealign selection, minihelix_unaligned"
     elif alignment_type.lower() == "align":
-        alignment_method = "align new, selection"
+        alignment_method = "align minihelix_unaligned, selection"
     else:
-        alignment_method = "align new, selection"
+        alignment_method = "align minihelix_unaligned, selection"
     print_output = []
     original_obj = str(Path(input_file).stem)
     print_output.extend(["pymol", str(input_file), "-c", "-d"])
