@@ -52,7 +52,7 @@ def append_addition(
     OTHER: int = ChainRole.OTHER.value
 
     # Obtain aligned pdb
-    aligned_path = output_path / "aligned.pdb"
+    aligned_path = output_path / "minihelix.pdb"
     aligned_pandas = PandasPdb().read_pdb(aligned_path)
     aligned = PDB(aligned_pandas.df, pdb.fasta)
 
